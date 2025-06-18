@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // Extract and validate the Bearer token
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Missing API key' },
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Log to console
-    console.log('[LOG API]', JSON.stringify(logData, null, 2));
+    console.warn('[LOG API]', JSON.stringify(logData, null, 2));
 
     // Return success response
     return NextResponse.json(
