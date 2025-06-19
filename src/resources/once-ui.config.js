@@ -1,5 +1,5 @@
 // IMPORTANT: Replace with your own domain address - it's used for SEO in meta tags and schema
-const baseURL = "https://demo.once-ui.com";
+const baseURL = "https://warden.sh";
 
 // Import and set font for each variant
 import { Geist } from "next/font/google";
@@ -40,8 +40,8 @@ const fonts = {
 const style = {
   theme: "dark", // dark | light - not needed when using ThemeProvider
   neutral: "gray", // sand | gray | slate
-  brand: "blue", // blue | indigo | violet | magenta | pink | red | orange | yellow | moss | green | emerald | aqua | cyan
-  accent: "indigo", // blue | indigo | violet | magenta | pink | red | orange | yellow | moss | green | emerald | aqua | cyan
+  brand: "orange", // blue | indigo | violet | magenta | pink | red | orange | yellow | moss | green | emerald | aqua | cyan
+  accent: "red", // blue | indigo | violet | magenta | pink | red | orange | yellow | moss | green | emerald | aqua | cyan
   solid: "contrast", // color | contrast | inverse
   solidStyle: "flat", // flat | plastic
   border: "playful", // rounded | playful | conservative
@@ -60,7 +60,7 @@ const dataStyle = {
   tick: {
     fill: "var(--neutral-on-background-weak)",
     fontSize: 11,
-    line: false
+    line: false,
   },
 };
 
@@ -72,15 +72,15 @@ const effects = {
     radius: 100,
   },
   gradient: {
-    display: false,
+    display: true,
     x: 50,
-    y: 0,
+    y: 50,
     width: 100,
     height: 100,
     tilt: 0,
     colorStart: "brand-background-strong",
     colorEnd: "static-transparent",
-    opacity: 50,
+    opacity: 30,
   },
   dots: {
     display: true,
@@ -109,24 +109,24 @@ const effects = {
 const meta = {
   home: {
     path: "/",
-    title: "Once UI for Next.js",
+    title: "Warden - Real-time Alerts for Developers | console.text()",
     description:
-      "An open-source design system and component library for Next.js that emphasizes easy styling and accessibility in UI development.",
+      "Drop console.text() anywhere in your code and get instant SMS alerts when things go wrong. 2-minute setup, smart thresholds, built for developers.",
     image: "/images/og/home.jpg",
-    canonical: "https://once-ui.com",
+    canonical: "https://warden.sh",
     robots: "index,follow",
-    alternates: [{ href: "https://once-ui.com", hrefLang: "en" }],
+    alternates: [{ href: "https://warden.sh", hrefLang: "en" }],
   },
   // add more routes and reference them in page.tsx
 };
 
 // default schema data
 const schema = {
-  logo: "",
+  logo: "/castle-icon.svg",
   type: "Organization",
-  name: "Once UI",
+  name: "Warden",
   description: meta.home.description,
-  email: "lorant@once-ui.com",
+  email: "consolewardenemails@gmail.com",
 };
 
 // social links
