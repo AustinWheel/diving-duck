@@ -5,8 +5,9 @@ import '@/resources/custom.css'
 import classNames from "classnames";
 
 import { baseURL, meta, fonts, effects, style, dataStyle } from "@/resources/once-ui.config";
-import { Meta, Schema, Column, Flex, opacity, SpacingToken, Background} from "@once-ui-system/core";
+import { Meta, Schema, Column, Flex, opacity, SpacingToken, Background } from "@once-ui-system/core";
 import { Providers } from '@/components/Providers';
+import { Analytics } from "@vercel/analytics/next"
 
 export async function generateMetadata() {
   return Meta.generate({
@@ -58,17 +59,17 @@ export default function RootLayout({
                   
                   // Set defaults from config
                   const config = ${JSON.stringify({
-                    brand: style.brand,
-                    accent: style.accent,
-                    neutral: style.neutral,
-                    solid: style.solid,
-                    "solid-style": style.solidStyle,
-                    border: style.border,
-                    surface: style.surface,
-                    transition: style.transition,
-                    scaling: style.scaling,
-                    "viz-style": dataStyle.variant,
-                  })};
+              brand: style.brand,
+              accent: style.accent,
+              neutral: style.neutral,
+              solid: style.solid,
+              "solid-style": style.solidStyle,
+              border: style.border,
+              surface: style.surface,
+              transition: style.transition,
+              scaling: style.scaling,
+              "viz-style": dataStyle.variant,
+            })};
                   
                   // Apply default values
                   Object.entries(config).forEach(([key, value]) => {
@@ -149,6 +150,7 @@ export default function RootLayout({
             }}
           />
           {children}
+          <Analytics />
         </Column>
       </Providers>
     </Flex>
