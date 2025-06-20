@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin from "@/lib/firebaseAdmin";
-import { LogEvent, ApiKey } from "@/types/database";
+import { LogEvent, ApiKey, LogType } from "@/types/database";
 
 interface LogRequestBody {
+  type?: LogType; // Optional, defaults to 'text'
   message: string;
   userId?: string;
   timestamp?: string;
@@ -79,11 +80,19 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
     const userAgent = request.headers.get("user-agent") || undefined;
 
+    // Validate log type if provided
+    const validLogTypes: LogType[] = ['text', 'call', 'callText', 'log', 'warn', 'error'];
+    const logType = body.type || 'text';
+    if (!validLogTypes.includes(logType)) {
+      return NextResponse.json({ error: "Invalid log type" }, { status: 400 });
+    }
+
     // Create event document
     const eventData: Omit<LogEvent, "id"> = {
       projectId: apiKey.projectId,
       keyId: keyDoc.id,
       keyType: apiKey.type,
+      type: logType,
       message: body.message,
       timestamp: body.timestamp ? new Date(body.timestamp) : new Date(),
       userId: body.userId,
@@ -109,6 +118,7 @@ export async function POST(request: NextRequest) {
       eventId: eventDoc.id,
       projectId: apiKey.projectId,
       keyType: apiKey.type,
+      logType: logType,
       message: body.message,
     });
 

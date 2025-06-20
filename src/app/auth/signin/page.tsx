@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Column,
   Row,
@@ -161,7 +162,14 @@ export default function SignIn() {
               onBackground="neutral-weak"
               align="center"
             >
-              By signing in, you agree to our Terms of Service and Privacy Policy
+              By signing in, you agree to our{" "}
+              <Link href="/terms" style={{ color: "var(--brand-on-background-strong)", textDecoration: "underline" }}>
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" style={{ color: "var(--brand-on-background-strong)", textDecoration: "underline" }}>
+                Privacy Policy
+              </Link>
             </Text>
           </Column>
         </div>

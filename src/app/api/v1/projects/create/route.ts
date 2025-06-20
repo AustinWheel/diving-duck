@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       name: name.toLowerCase(),
       displayName,
       ownerId: userId,
+      memberIds: [userId], // Owner is also a member
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       alertConfig: {
@@ -87,15 +88,26 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    await projectRef.set(projectData);
+    // Start a batch write
+    const batch = adminDb.batch();
+    
+    // Create the project
+    batch.set(projectRef, projectData);
 
     // Add user as project owner
     const memberRef = adminDb.collection("projectMembers").doc(`${userId}_${projectRef.id}`);
-    await memberRef.set({
+    batch.set(memberRef, {
       projectId: projectRef.id,
       userId,
       role: "owner",
       joinedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    
+    // Update user's projectIds array
+    const userRef = adminDb.collection("users").doc(userId);
+    batch.update(userRef, {
+      projectIds: admin.firestore.FieldValue.arrayUnion(projectRef.id),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     // Create initial API keys (one test, one prod)
@@ -104,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // Create test key (expires in 2 hours)
     const testKeyRef = adminDb.collection("keys").doc();
-    await testKeyRef.set({
+    batch.set(testKeyRef, {
       id: testKeyRef.id,
       key: testKey,
       type: "test",
@@ -118,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     // Create production key (no expiration)
     const prodKeyRef = adminDb.collection("keys").doc();
-    await prodKeyRef.set({
+    batch.set(prodKeyRef, {
       id: prodKeyRef.id,
       key: prodKey,
       type: "prod",
@@ -128,6 +140,9 @@ export async function POST(request: NextRequest) {
       isActive: true,
       name: "Initial Production Key",
     });
+    
+    // Commit all changes atomically
+    await batch.commit();
 
     return NextResponse.json({
       project: {

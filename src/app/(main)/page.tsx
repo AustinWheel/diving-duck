@@ -12,6 +12,7 @@ import {
   Card,
   Icon,
   CodeBlock,
+  Particle,
 } from "@once-ui-system/core";
 import { Navbar } from "@/components/Navbar";
 import { VideoBackground } from "@/components/VideoBackground";
@@ -20,12 +21,12 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      
+
       {/* Hero Section with Video Background */}
-      <Column 
-        fillWidth 
-        style={{ 
-          minHeight: "100vh", 
+      <Column
+        fillWidth
+        style={{
+          minHeight: "100vh",
           position: "relative",
           display: "flex",
           alignItems: "center",
@@ -34,22 +35,22 @@ export default function Home() {
         }}
       >
         <VideoBackground />
-        
-        <Column 
-          maxWidth="m" 
-          horizontal="center" 
-          gap="l" 
+
+        <Column
+          maxWidth="m"
+          horizontal="center"
+          gap="l"
           align="center"
-          style={{ 
-            position: "relative", 
+          style={{
+            position: "relative",
             zIndex: 1,
             padding: "0 24px",
           }}
         >
-          <Heading 
-            variant="display-strong-xl" 
+          <Heading
+            variant="display-strong-xl"
             align="center"
-            style={{ 
+            style={{
               fontSize: "clamp(48px, 8vw, 80px)",
               lineHeight: 1.1,
               letterSpacing: "-0.03em",
@@ -60,7 +61,7 @@ export default function Home() {
             <br />
             no extra noice.
           </Heading>
-          
+
           <Text
             variant="heading-default-l"
             align="center"
@@ -74,11 +75,11 @@ export default function Home() {
           </Text>
 
           <Flex gap="m" wrap horizontal="center">
-            <Button 
-              href="/auth/signin" 
-              variant="primary" 
+            <Button
+              href="/auth/signin"
+              variant="primary"
               size="l"
-              prefixIcon="download"
+              prefixIcon="sparkle"
               style={{
                 backgroundColor: "var(--brand-background-strong)",
                 color: "var(--brand-on-background-strong)",
@@ -87,12 +88,13 @@ export default function Home() {
                 border: "1px solid var(--brand-border-strong)",
               }}
             >
-              Download for Mac
+              Get Started
             </Button>
-            <Button 
-              href="/docs" 
-              variant="secondary" 
+            <Button
+              href="https://npmjs.com/package/console-warden"
+              variant="secondary"
               size="l"
+              prefixIcon="package"
               style={{
                 backgroundColor: "rgba(255, 255, 255, 0.1)",
                 border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -100,37 +102,37 @@ export default function Home() {
                 padding: "12px 24px",
               }}
             >
-              Join Windows waitlist
+              View on NPM
             </Button>
           </Flex>
-          
-          <Flex 
-            gap="24" 
-            vertical="center" 
+
+          <Flex
+            gap="24"
+            vertical="center"
             horizontal="center"
-            style={{ 
+            style={{
               marginTop: "48px",
               fontSize: "14px",
               color: "var(--neutral-on-background-weak)",
             }}
           >
-            <Text>v1.100.2</Text>
+            <Text>v1.0.0</Text>
             <Text>•</Text>
-            <Text>macOS 13+</Text>
+            <Text>JavaScript Support</Text>
             <Text>•</Text>
             <Button
-              href="#"
+              href="/docs"
               variant="tertiary"
               size="s"
-              style={{ 
+              style={{
                 color: "var(--neutral-on-background-weak)",
                 textDecoration: "underline",
               }}
             >
-              Install via homebrew
+              Documentation
             </Button>
           </Flex>
-          
+
           <Flex
             vertical="center"
             horizontal="center"
@@ -151,6 +153,94 @@ export default function Home() {
         </Column>
       </Column>
 
+      {/* Logs Example Section */}
+      <Column
+        fillWidth
+        center
+        padding="xl"
+        style={{
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <Particle
+          fill
+          interactive
+          speed={2.5}
+          interactionRadius={3}
+          density={150}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.6,
+            height: "100%",
+          }}
+        />
+
+        <Column
+          maxWidth="xl"
+          horizontal="center"
+          gap="l"
+          align="center"
+          style={{ position: "relative", zIndex: 1 }}
+        >
+          <Heading
+            variant="display-strong-m"
+            align="center"
+          >
+            Real-time visibility into your application
+          </Heading>
+
+          <Text
+            variant="body-default-l"
+            align="center"
+            onBackground="neutral-weak"
+            style={{ maxWidth: "600px" }}
+          >
+            Monitor events as they happen. Filter by type, search messages, and track user activity—all in one unified dashboard.
+          </Text>
+
+          <div style={{
+            position: "relative",
+            marginTop: "40px",
+            marginBottom: "40px",
+            maxWidth: "100%",
+            width: "fit-content",
+          }}>
+            <div style={{
+              position: "absolute",
+              inset: "-60px",
+              background: "radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 50%)",
+              filter: "blur(60px)",
+              zIndex: -1,
+            }} />
+            <img
+              src="/images/logs-example.png"
+              alt="Event logs dashboard example"
+              style={{
+                width: "100%",
+                maxWidth: "1000px",
+                height: "auto",
+                borderRadius: "var(--radius-l)",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            />
+          </div>
+
+          <Text
+            variant="body-default-m"
+            align="center"
+            onBackground="neutral-weak"
+          >
+            From development to production, never miss a critical event
+          </Text>
+        </Column>
+      </Column>
+
       {/* Rest of the page content */}
       <Column fillWidth padding="l" id="features">
         {/* Code Example */}
@@ -167,16 +257,16 @@ export default function Home() {
               backgroundColor: "rgba(20, 20, 20, 0.8)",
             }}
           >
-            <CodeBlock 
+            <CodeBlock
               codes={[{
                 label: "Quick Start",
                 language: "javascript",
                 code: `// Install the SDK
-npm install @your-package/alerts
+npm install console-warden
 
 // Add to your code
-import { setupAlerts } from '@your-package/alerts';
-setupAlerts('prod_your_api_key');
+import { setupWarden } from 'console-warden';
+setupWarden('prod_your_api_key');
 
 // Send alerts anywhere
 try {

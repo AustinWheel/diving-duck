@@ -3,10 +3,10 @@ import { adminDb } from "@/lib/firebaseAdmin";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const inviteId = await params.id;
+    const { id: inviteId } = await params;
 
     // Get invite details
     const inviteDoc = await adminDb.collection("invites").doc(inviteId).get();

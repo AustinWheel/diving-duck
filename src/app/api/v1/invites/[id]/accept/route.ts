@@ -5,7 +5,7 @@ import { getAuth } from "firebase-admin/auth";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Get auth token from Authorization header
@@ -31,7 +31,7 @@ export async function POST(
     }
 
     const userId = decodedToken.uid;
-    const inviteId =  await params.id;
+    const { id: inviteId } = await params;
 
     // Get invite details
     const inviteRef = adminDb.collection("invites").doc(inviteId);
@@ -85,17 +85,34 @@ export async function POST(
       acceptedBy: userId,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    
+    // Add user to project's memberIds array
+    const projectRef = adminDb.collection("projects").doc(invite.projectId);
+    batch.update(projectRef, {
+      memberIds: admin.firestore.FieldValue.arrayUnion(userId),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-    // Check if user needs to be marked as onboarded
+    // Update user document
     const userRef = adminDb.collection("users").doc(userId);
     const userDoc = await userRef.get();
     
+    const userUpdates: any = {
+      projectIds: admin.firestore.FieldValue.arrayUnion(invite.projectId),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    
+    // Mark as onboarded if needed
     if (userDoc.exists && !userDoc.data()?.isOnboarded) {
-      batch.update(userRef, {
-        isOnboarded: true,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      userUpdates.isOnboarded = true;
     }
+    
+    // Set defaultProjectId if user doesn't have one
+    if (userDoc.exists && !userDoc.data()?.defaultProjectId) {
+      userUpdates.defaultProjectId = invite.projectId;
+    }
+    
+    batch.update(userRef, userUpdates);
 
     // Commit all changes atomically
     await batch.commit();
