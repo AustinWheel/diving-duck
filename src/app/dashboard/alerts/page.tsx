@@ -25,6 +25,7 @@ export default function AlertsPage() {
   const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalConfig, setOriginalConfig] = useState<AlertConfig | null>(null);
+  const [testingSMS, setTestingSMS] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -179,6 +180,58 @@ export default function AlertsPage() {
     });
   };
 
+  const sendTestAlert = async () => {
+    try {
+      setTestingSMS(true);
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      const response = await fetch('/api/v1/alerts/test', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send test alert');
+      }
+
+      const successCount = data.results.filter((r: any) => r.success).length;
+      const totalCount = data.results.length;
+
+      if (successCount === totalCount) {
+        setToastMessage({ 
+          message: `Test alert sent successfully to ${successCount} number${successCount > 1 ? 's' : ''}`, 
+          type: 'success' 
+        });
+      } else if (successCount > 0) {
+        setToastMessage({ 
+          message: `Test alert sent to ${successCount} of ${totalCount} numbers`, 
+          type: 'error' 
+        });
+      } else {
+        setToastMessage({ 
+          message: 'Failed to send test alert to any numbers', 
+          type: 'error' 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test alert:', error);
+      setToastMessage({
+        message: error instanceof Error ? error.message : 'Failed to send test alert',
+        type: 'error'
+      });
+    } finally {
+      setTestingSMS(false);
+    }
+  };
+
   const addAlertRule = () => {
     const newRule: AlertRule = {
       globalLimit: {
@@ -330,9 +383,28 @@ export default function AlertsPage() {
 
       {/* Phone Numbers */}
       <Column gap="16">
-        <Flex gap="12" vertical="center">
-          <Icon name="phone" size="m" />
-          <Heading variant="heading-strong-m">Phone Numbers</Heading>
+        <Flex fillWidth horizontal="space-between" vertical="center">
+          <Flex gap="12" vertical="center">
+            <Icon name="phone" size="m" />
+            <Heading variant="heading-strong-m">Phone Numbers</Heading>
+          </Flex>
+          {config.phoneNumbers.length > 0 && config.enabled && (
+            <Button
+              onClick={sendTestAlert}
+              variant="secondary"
+              size="s"
+              disabled={testingSMS}
+            >
+              {testingSMS ? (
+                <Spinner size="s" />
+              ) : (
+                <Flex gap="8" vertical="center">
+                  <Icon name="message" size="s" />
+                  <span>Send Test Alert</span>
+                </Flex>
+              )}
+            </Button>
+          )}
         </Flex>
         <Text variant="body-default-m" onBackground="neutral-weak">
           Add phone numbers to receive alerts. Use E.164 format (e.g., +1234567890)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin from "@/lib/firebaseAdmin";
 import { LogEvent, ApiKey, LogType } from "@/types/database";
+import { checkAlertsForEvent } from "@/lib/alerts/alert-checker";
 
 interface LogRequestBody {
   type?: LogType; // Optional, defaults to 'text'
@@ -120,6 +121,13 @@ export async function POST(request: NextRequest) {
       keyType: apiKey.type,
       logType: logType,
       message: body.message,
+    });
+
+    // Check if this event triggers any alerts
+    const eventWithId = { ...eventData, id: eventDoc.id };
+    // Run alert checking asynchronously - don't block the response
+    checkAlertsForEvent(eventWithId).catch(error => {
+      console.error("[LOG API] Error checking alerts:", error);
     });
 
     // Return success response

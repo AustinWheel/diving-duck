@@ -103,12 +103,22 @@ export async function POST(request: NextRequest) {
       joinedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     
-    // Update user's projectIds array
+    // Update user's projectIds array and set defaultProjectId if this is their first project
     const userRef = adminDb.collection("users").doc(userId);
-    batch.update(userRef, {
+    const userDoc = await userRef.get();
+    const userData = userDoc.data();
+    
+    const updateData: any = {
       projectIds: admin.firestore.FieldValue.arrayUnion(projectRef.id),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    };
+    
+    // If user doesn't have a default project, set this as default
+    if (!userData?.defaultProjectId) {
+      updateData.defaultProjectId = projectRef.id;
+    }
+    
+    batch.update(userRef, updateData);
 
     // Create initial API keys (one test, one prod)
     const testKey = `test_${nanoid(32)}`;

@@ -86,7 +86,11 @@ A lightweight alerting service for developers that extends `console.text()` to t
 ✅ Support for multiple console methods (text, call, callText, log, warn, error)
 ✅ Pagination for event logs
 ✅ Alert configuration UI and API
-⏳ Alert triggering logic and SMS integration pending
+✅ Alert triggering logic with SMS notifications via Textbelt
+✅ Alert history page
+✅ SMS integration with Textbelt
+✅ Test alert functionality
+⏳ Phone call alerts (currently send SMS with "URGENT" prefix)
 ⏳ Team management page pending
 
 ## Testing Commands
@@ -136,6 +140,8 @@ npm run lint     # Run linter
 ### Alerts
 - GET `/api/v1/alerts/config` - Get alert configuration for project
 - PATCH `/api/v1/alerts/config` - Update alert configuration
+- GET `/api/v1/alerts/history` - Get alert history with pagination
+- POST `/api/v1/alerts/test` - Send test alert to configured phone numbers
 
 ## Alerts System Requirements
 
