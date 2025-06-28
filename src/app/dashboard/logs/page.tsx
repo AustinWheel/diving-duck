@@ -63,6 +63,10 @@ export default function EventLogsPage() {
 
   const loadEvents = async (cursor?: string) => {
     try {
+      // Preserve scroll position when loading more
+      const scrollContainer = document.querySelector('[style*="overflow: auto"]') as HTMLElement;
+      const scrollTop = scrollContainer?.scrollTop || 0;
+      
       if (!cursor) {
         setLoading(true);
       } else {
@@ -99,6 +103,13 @@ export default function EventLogsPage() {
       
       setNextCursor(data.nextCursor);
       setHasMore(data.hasMore);
+      
+      // Restore scroll position after DOM update
+      if (cursor && scrollContainer) {
+        requestAnimationFrame(() => {
+          scrollContainer.scrollTop = scrollTop;
+        });
+      }
     } catch (error) {
       console.error('Error loading events:', error);
     } finally {
@@ -473,7 +484,10 @@ export default function EventLogsPage() {
           {hasMore && (
             <Flex center style={{ marginTop: '16px' }}>
               <Button
-                onClick={() => loadEvents(nextCursor!)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  loadEvents(nextCursor!);
+                }}
                 variant="secondary"
                 size="m"
                 disabled={loadingMore}

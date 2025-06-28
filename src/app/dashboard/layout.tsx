@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Flex, Text, Button, Avatar, Column, Icon, Select, Background } from "@once-ui-system/core";
+import Link from "next/link";
+import { Flex, Text, Button, Avatar, Column, Icon, Select, Background, Spinner } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { signOut } from "@/lib/auth";
 
@@ -25,6 +26,7 @@ export default function DashboardLayout({
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isPending, startTransition] = useTransition();
   
   // Set sidebar open on desktop, closed on mobile
   useEffect(() => {
@@ -173,39 +175,47 @@ export default function DashboardLayout({
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
             
             return (
-              <Button
+              <Link
                 key={item.href}
                 href={item.href}
-                variant="tertiary"
-                size="m"
-                fillWidth
                 style={{
-                  justifyContent: sidebarOpen ? "flex-start" : "center",
-                  padding: sidebarOpen ? "12px 16px" : "12px",
-                  backgroundColor: isActive ? "rgba(255, 107, 53, 0.1)" : "transparent",
-                  color: isActive ? "var(--brand-on-background-strong)" : "var(--neutral-on-background-weak)",
-                  borderRadius: "8px",
-                  marginBottom: "4px",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
-                    e.currentTarget.style.color = "var(--neutral-on-background-strong)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.color = "var(--neutral-on-background-weak)";
-                  }
+                  textDecoration: 'none',
+                  display: 'block',
+                  marginBottom: '4px',
                 }}
               >
-                <Flex gap="16" vertical="center" fillWidth>
-                  <Icon name={item.icon as any} size="s" />
-                  {sidebarOpen && <Text>{item.label}</Text>}
-                </Flex>
-              </Button>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: sidebarOpen ? "flex-start" : "center",
+                    padding: sidebarOpen ? "12px 16px" : "12px",
+                    backgroundColor: isActive ? "rgba(255, 107, 53, 0.1)" : "transparent",
+                    color: isActive ? "var(--brand-on-background-strong)" : "var(--neutral-on-background-weak)",
+                    borderRadius: "8px",
+                    transition: "all 0.2s ease",
+                    cursor: "pointer",
+                    opacity: isPending ? 0.6 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+                      e.currentTarget.style.color = "var(--neutral-on-background-strong)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "var(--neutral-on-background-weak)";
+                    }
+                  }}
+                >
+                  <Flex gap="16" vertical="center" fillWidth>
+                    <Icon name={item.icon as any} size="s" />
+                    {sidebarOpen && <Text>{item.label}</Text>}
+                  </Flex>
+                </div>
+              </Link>
             );
           })}
         </Column>

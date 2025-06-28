@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import admin from "@/lib/firebaseAdmin";
 import { getAuth } from "firebase-admin/auth";
+import { track } from "@vercel/analytics/server";
 
 export async function POST(
   request: NextRequest,
@@ -102,9 +103,13 @@ export async function POST(
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     
+    // Check if this is a new user signup via invitation
+    let isNewUserViaInvite = false;
+    
     // Mark as onboarded if needed
     if (userDoc.exists && !userDoc.data()?.isOnboarded) {
       userUpdates.isOnboarded = true;
+      isNewUserViaInvite = true;
     }
     
     // Set defaultProjectId if user doesn't have one
@@ -116,6 +121,15 @@ export async function POST(
 
     // Commit all changes atomically
     await batch.commit();
+
+    // Track signup event if this is a new user via invitation
+    if (isNewUserViaInvite) {
+      await track('Signup', { 
+        location: 'invitation',
+        projectId: invite.projectId,
+        invitedBy: invite.invitedBy
+      });
+    }
 
     return NextResponse.json({
       success: true,

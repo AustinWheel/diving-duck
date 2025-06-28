@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from '@/lib/firebaseAdmin';
 import { User } from '@/types/database';
+import { track } from '@vercel/analytics/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,12 @@ export async function POST(request: NextRequest) {
         ...newUser,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Track signup event
+      await track('Signup', { 
+        location: 'auth_sync',
+        method: email.includes('@gmail.com') ? 'google' : 'github'
       });
 
       // Don't create a default project - user will create one during onboarding
