@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Flex, Text, Button, Avatar, Column, Icon, Select } from "@once-ui-system/core";
+import { Flex, Text, Button, Avatar, Column, Icon, Select, Background } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { signOut } from "@/lib/auth";
 
@@ -70,7 +70,35 @@ export default function DashboardLayout({
   };
 
   return (
-    <Flex fillWidth style={{ minHeight: "100vh", background: "var(--page-background)" }}>
+    <Flex fillWidth style={{ minHeight: "100vh", background: "var(--page-background)", position: "relative" }}>
+      {/* Background Effect */}
+      <Background
+        position="absolute"
+        mask={{
+          cursor: false,
+          x: 50,
+          y: 0,
+          radius: 100,
+        }}
+        gradient={{
+          display: true,
+          x: 50,
+          y: 50,
+          width: 100,
+          height: 100,
+          tilt: 0,
+          colorStart: "brand-background-strong",
+          colorEnd: "static-transparent",
+          opacity: 30,
+        }}
+        dots={{
+          display: true,
+          size: "2",
+          color: "brand-on-background-weak",
+          opacity: 40,
+        }}
+      />
+      
       {/* Sidebar */}
       <div
         style={{
@@ -79,10 +107,13 @@ export default function DashboardLayout({
           position: "sticky",
           top: 0,
           borderRight: "1px solid rgba(255, 255, 255, 0.08)",
-          backgroundColor: "rgba(10, 10, 12, 0.95)",
+          backgroundColor: "rgba(0, 0, 0, 0.3)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
           transition: "width 0.3s ease",
           display: "flex",
           flexDirection: "column",
+          zIndex: 1,
         }}
       >
         {/* Logo */}
@@ -234,12 +265,13 @@ export default function DashboardLayout({
                 bottom: "calc(100% + 8px)",
                 left: "16px",
                 right: "16px",
-                backgroundColor: "rgba(20, 20, 20, 0.98)",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
                 border: "1px solid rgba(255, 255, 255, 0.08)",
                 borderRadius: "12px",
                 padding: "8px",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.8)",
+                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3)",
                 backdropFilter: "blur(24px)",
+                WebkitBackdropFilter: "blur(24px)",
                 minWidth: "120px",
               }}
               data-user-menu
@@ -301,7 +333,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
         {children}
       </div>
     </Flex>
