@@ -38,9 +38,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get project ID from request body
-    const body = await request.json();
-    const projectId = body.projectId;
+    // Get project ID from query params
+    const projectId = request.nextUrl.searchParams.get('projectId');
 
     if (!projectId) {
       return NextResponse.json(
