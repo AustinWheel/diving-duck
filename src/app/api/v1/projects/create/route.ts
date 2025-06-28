@@ -108,17 +108,10 @@ export async function POST(request: NextRequest) {
     const userDoc = await userRef.get();
     const userData = userDoc.data();
     
-    const updateData: any = {
+    batch.update(userRef, {
       projectIds: admin.firestore.FieldValue.arrayUnion(projectRef.id),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-    
-    // If user doesn't have a default project, set this as default
-    if (!userData?.defaultProjectId) {
-      updateData.defaultProjectId = projectRef.id;
-    }
-    
-    batch.update(userRef, updateData);
+    });
 
     // Create initial API keys (one test, one prod)
     const testKey = `test_${nanoid(32)}`;

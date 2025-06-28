@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Flex, Text, Button, Avatar, Column, Icon, Select, Background, Spinner } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProject } from "@/contexts/ProjectContext";
 import { signOut } from "@/lib/auth";
 
 const navigationItems = [
@@ -24,6 +25,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { projects, currentProject, currentProjectId, loading: projectsLoading, switchProject } = useProject();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -156,15 +158,30 @@ export default function DashboardLayout({
         {/* Project Selector */}
         {sidebarOpen && (
           <div style={{ padding: "16px" }}>
-            <Select
-              label="Project"
-              id="1"
-              options={[
-                { value: "project-1", label:"My Project" },
-              ]}
-              value="project-1"
-              onChange={() => {}}
-            />
+            {projectsLoading ? (
+              <Flex fillWidth padding="16" center>
+                <Spinner size="s" />
+              </Flex>
+            ) : projects.length === 0 ? (
+              <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center", padding: "16px" }}>
+                No projects yet
+              </Text>
+            ) : (
+              <Select
+                label="Project"
+                id="project-selector"
+                options={projects.map(project => ({
+                  value: project.id,
+                  label: project.displayName,
+                }))}
+                value={currentProjectId || ""}
+                onChange={(value) => {
+                  if (value) {
+                    switchProject(value);
+                  }
+                }}
+              />
+            )}
           </div>
         )}
 

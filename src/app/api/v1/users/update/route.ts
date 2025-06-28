@@ -7,7 +7,6 @@ import { getAuth } from "firebase-admin/auth";
 const ALLOWED_UPDATE_FIELDS = [
   "displayName",
   "phoneNumber",
-  "defaultProjectId",
 ];
 
 export async function PATCH(request: NextRequest) {
@@ -100,23 +99,7 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    if ("defaultProjectId" in allowedUpdates) {
-      const projectId = allowedUpdates.defaultProjectId;
-      if (projectId !== null) {
-        // Verify user is a member of this project
-        const memberDoc = await adminDb
-          .collection("projectMembers")
-          .doc(`${userId}_${projectId}`)
-          .get();
-
-        if (!memberDoc.exists) {
-          return NextResponse.json(
-            { error: "You are not a member of this project" },
-            { status: 403 }
-          );
-        }
-      }
-    }
+    // Project validation removed - defaultProjectId no longer supported
 
     // Add updatedAt timestamp
     allowedUpdates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
@@ -146,7 +129,6 @@ export async function PATCH(request: NextRequest) {
         email: updatedData?.email,
         displayName: updatedData?.displayName,
         phoneNumber: updatedData?.phoneNumber,
-        defaultProjectId: updatedData?.defaultProjectId,
         isOnboarded: updatedData?.isOnboarded,
       },
     });

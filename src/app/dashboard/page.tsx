@@ -2,23 +2,46 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Flex, Column, Heading, Text, Icon, Spinner, Button } from '@once-ui-system/core';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProject } from '@/contexts/ProjectContext';
 import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
+  const { currentProjectId, loading: projectsLoading } = useProject();
   const router = useRouter();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
-  const [stats, setStats] = useState({
-    events: 0,
-    alerts: 0,
-    apiKeys: 0,
-    teamMembers: 0
+  // Fetch dashboard stats using TanStack Query
+  const { data: stats = { events: 0, alerts: 0, apiKeys: 0, teamMembers: 0 }, isLoading: loadingStats } = useQuery({
+    queryKey: ['dashboard-stats', currentProjectId],
+    queryFn: async () => {
+      if (!currentProjectId) throw new Error('No project selected');
+      
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('No auth token available');
+      
+      const response = await fetch(`/api/v1/dashboard/stats?projectId=${currentProjectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats');
+      }
+      
+      const data = await response.json();
+      console.log('Dashboard stats received:', data.stats);
+      return data.stats;
+    },
+    enabled: !!currentProjectId && !checkingOnboarding,
+    staleTime: 30 * 1000, // 30 seconds
   });
-  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -42,8 +65,6 @@ export default function Dashboard() {
         router.push('/onboarding');
       } else {
         setCheckingOnboarding(false);
-        // Load dashboard stats
-        loadDashboardStats();
       }
     } catch (error) {
       console.error('Error checking onboarding status:', error);
@@ -51,40 +72,8 @@ export default function Dashboard() {
     }
   };
 
-  const loadDashboardStats = async () => {
-    try {
-      setLoadingStats(true);
-      
-      // Get the current user's ID token
-      const auth = getAuth();
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) {
-        console.error('No auth token available');
-        return;
-      }
-      
-      // Fetch stats from API
-      const response = await fetch('/api/v1/dashboard/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
-      }
-      
-      const data = await response.json();
-      console.log(data)
-      setStats(data.stats);
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error);
-    } finally {
-      setLoadingStats(false);
-    }
-  };
 
-  if (loading || checkingOnboarding) {
+  if (loading || checkingOnboarding || projectsLoading) {
     return (
       <Flex fillWidth fillHeight center style={{ minHeight: "100vh" }}>
         <Spinner size="l" />
@@ -146,10 +135,10 @@ export default function Dashboard() {
 
       {/* Stats Cards */}
       <Flex gap="24" wrap style={{ marginTop: "16px" }}>
-        <StatCard icon="zap" label="Events (24h)" value={loadingStats ? "..." : stats.events} />
-        <StatCard icon="bell" label="Active Alerts" value={loadingStats ? "..." : stats.alerts} color="var(--danger-on-background-strong)" />
-        <StatCard icon="key" label="API Keys" value={loadingStats ? "..." : stats.apiKeys} color="var(--success-on-background-strong)" />
-        <StatCard icon="user" label="Team Members" value={loadingStats ? "..." : stats.teamMembers} color="var(--info-on-background-strong)" />
+        <StatCard icon="zap" label="Events (24h)" value={loadingStats ? "..." : stats?.events || 0} />
+        <StatCard icon="bell" label="Active Alerts" value={loadingStats ? "..." : stats?.alerts || 0} color="var(--danger-on-background-strong)" />
+        <StatCard icon="key" label="API Keys" value={loadingStats ? "..." : stats?.apiKeys || 0} color="var(--success-on-background-strong)" />
+        <StatCard icon="user" label="Team Members" value={loadingStats ? "..." : stats?.teamMembers || 0} color="var(--info-on-background-strong)" />
       </Flex>
 
       {/* Recent Events Section */}

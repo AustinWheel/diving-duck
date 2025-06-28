@@ -40,19 +40,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const userData = userDoc.data()!;
-    const updateData: any = {
+    // Update user's onboarding status
+    await userRef.update({
       isOnboarded: true,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-    
-    // Ensure defaultProjectId is set if user has projects
-    if (!userData.defaultProjectId && userData.projectIds?.length > 0) {
-      updateData.defaultProjectId = userData.projectIds[0];
-    }
-
-    // Update user's onboarding status
-    await userRef.update(updateData);
+    });
 
     return NextResponse.json({
       success: true,

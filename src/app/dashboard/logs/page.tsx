@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Column, Heading, Text, Button, Flex, Icon, Spinner, Input, CodeBlock, InlineCode, Row, Badge, Tag } from '@once-ui-system/core';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useProject } from '@/contexts/ProjectContext';
 import { LogType } from '@/types/database';
 
 interface LogEvent {
@@ -26,6 +27,7 @@ interface ApiKey {
 }
 
 export default function EventLogsPage() {
+  const { currentProjectId, loading: projectsLoading } = useProject();
   const [events, setEvents] = useState<LogEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -50,7 +52,7 @@ export default function EventLogsPage() {
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && currentProjectId) {
         loadEvents();
         loadSandboxKeys();
       } else {
@@ -59,7 +61,7 @@ export default function EventLogsPage() {
     });
 
     return () => unsubscribe();
-  }, [selectedType]);
+  }, [selectedType, currentProjectId]);
 
   const loadEvents = async (cursor?: string) => {
     try {
@@ -78,6 +80,7 @@ export default function EventLogsPage() {
       if (!token) return;
 
       const params = new URLSearchParams();
+      if (currentProjectId) params.append('projectId', currentProjectId);
       if (selectedType !== 'all') params.append('type', selectedType);
       if (cursor) params.append('startAfter', cursor);
       if (searchQuery) params.append('search', searchQuery);
@@ -124,7 +127,7 @@ export default function EventLogsPage() {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
 
-      const response = await fetch('/api/v1/keys', {
+      const response = await fetch(`/api/v1/keys?projectId=${currentProjectId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -249,7 +252,7 @@ export default function EventLogsPage() {
 
   const logTypes: LogType[] = ['text', 'call', 'callText', 'log', 'warn', 'error'];
 
-  if (loading) {
+  if (loading || projectsLoading) {
     return (
       <Flex fillWidth fillHeight center style={{ minHeight: "60vh" }}>
         <Spinner size="l" />

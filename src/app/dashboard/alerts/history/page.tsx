@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Column, Heading, Text, Button, Flex, Icon, Spinner } from '@once-ui-system/core';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useProject } from '@/contexts/ProjectContext';
 import { Alert } from '@/types/database';
 
 export default function AlertHistoryPage() {
+  const { currentProjectId, loading: projectsLoading } = useProject();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -16,7 +18,7 @@ export default function AlertHistoryPage() {
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && currentProjectId) {
         loadAlerts();
       } else {
         setLoading(false);
@@ -24,7 +26,7 @@ export default function AlertHistoryPage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentProjectId]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -47,6 +49,7 @@ export default function AlertHistoryPage() {
       }
 
       const params = new URLSearchParams({ limit: '20' });
+      if (currentProjectId) params.append('projectId', currentProjectId);
       if (append && cursor) params.append('cursor', cursor);
 
       const response = await fetch(`/api/v1/alerts/history?${params}`, {
@@ -92,7 +95,7 @@ export default function AlertHistoryPage() {
     }
   };
 
-  if (loading) {
+  if (loading || projectsLoading) {
     return (
       <Column fillWidth padding="l" alignItems="center" gap="l">
         <Spinner size="l" />

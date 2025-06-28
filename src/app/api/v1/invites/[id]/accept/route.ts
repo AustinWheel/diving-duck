@@ -112,10 +112,7 @@ export async function POST(
       isNewUserViaInvite = true;
     }
     
-    // Set defaultProjectId if user doesn't have one
-    if (userDoc.exists && !userDoc.data()?.defaultProjectId) {
-      userUpdates.defaultProjectId = invite.projectId;
-    }
+    // User's first project is handled by ProjectContext
     
     batch.update(userRef, userUpdates);
 

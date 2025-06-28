@@ -38,20 +38,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userData = userDoc.data() as User;
-    
-    // Get project ID from user's default or first project
-    const targetProjectId = userData.defaultProjectId || userData.projectIds?.[0];
+    // Get project ID from request body
+    const body = await request.json();
+    const projectId = body.projectId;
 
-    if (!targetProjectId) {
+    if (!projectId) {
       return NextResponse.json(
-        { error: 'No project found. Please create a project first.' },
+        { error: 'Project ID is required' },
         { status: 400 }
       );
     }
 
     // Verify user has access to this project
-    const projectDoc = await adminDb.collection('projects').doc(targetProjectId).get();
+    const projectDoc = await adminDb.collection('projects').doc(projectId).get();
     if (!projectDoc.exists) {
       return NextResponse.json(
         { error: 'Project not found' },
@@ -65,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (projectData.ownerId !== userId) {
       const memberDoc = await adminDb
         .collection('projects')
-        .doc(targetProjectId)
+        .doc(projectId)
         .collection('members')
         .doc(userId)
         .get();
@@ -137,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Create a test alert record
     await adminDb.collection('alerts').add({
-      projectId: targetProjectId,
+      projectId: projectId,
       status: results.some(r => r.success) ? 'sent' : 'failed',
       notificationType: 'text',
       message: 'Test Alert',

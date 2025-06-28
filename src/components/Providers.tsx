@@ -19,6 +19,17 @@ import {
 import { style, dataStyle } from "../resources/once-ui.config";
 import { iconLibrary } from "../resources/icons";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProjectProvider } from "@/contexts/ProjectContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -48,9 +59,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <ToastProvider>
           <IconProvider icons={iconLibrary}>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <ProjectProvider>
+                  {children}
+                </ProjectProvider>
+              </AuthProvider>
+            </QueryClientProvider>
           </IconProvider>
         </ToastProvider>
       </DataThemeProvider>

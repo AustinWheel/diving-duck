@@ -36,7 +36,6 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   phoneNumber?: string; // For SMS alerts
-  defaultProjectId?: string;
   projectIds?: string[]; // Array of project IDs user is member of
   isOnboarded?: boolean; // Whether user has completed onboarding
 }

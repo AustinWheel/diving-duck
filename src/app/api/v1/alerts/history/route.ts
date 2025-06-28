@@ -38,18 +38,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userData = userDoc.data() as User;
-    const targetProjectId = userData.defaultProjectId || userData.projectIds?.[0];
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('projectId');
 
-    if (!targetProjectId) {
+    if (!projectId) {
       return NextResponse.json(
-        { error: 'No project specified or default project set' },
+        { error: 'Project ID is required' },
         { status: 400 }
       );
     }
 
     // Verify user has access to this project
-    const projectDoc = await adminDb.collection('projects').doc(targetProjectId).get();
+    const projectDoc = await adminDb.collection('projects').doc(projectId).get();
     if (!projectDoc.exists) {
       return NextResponse.json(
         { error: 'Project not found' },
@@ -65,15 +66,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
+    // Get additional query parameters
     const limit = parseInt(searchParams.get('limit') || '50');
     const startAfter = searchParams.get('cursor');
     const status = searchParams.get('status'); // pending, sent, failed, acknowledged
 
     // Build query
     let query = adminDb.collection('alerts')
-      .where('projectId', '==', targetProjectId)
+      .where('projectId', '==', projectId)
       .orderBy('createdAt', 'desc')
       .limit(limit);
 

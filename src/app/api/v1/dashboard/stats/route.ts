@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
-    
+
     // Verify the Firebase ID token
     let decodedToken;
     try {
@@ -27,35 +27,15 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = decodedToken.uid;
-    
-    // Get user document to find their default project
-    const userDoc = await adminDb.collection("users").doc(userId).get();
-    if (!userDoc.exists) {
-      console.warn("User not found for userId: ", userId);
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
 
-    const userData = userDoc.data()! as User;
-    const projectId = userData.projectIds?.at(0) as string;
-    
+    // Get project ID from query params
+    const projectId = request.nextUrl.searchParams.get("projectId");
+
     if (!projectId) {
-      return NextResponse.json({
-        stats: {
-          events: 0,
-          alerts: 0,
-          apiKeys: 0,
-          teamMembers: 0,
-        },
-        project: {
-          id: projectId,
-          name: "",
-          displayName: "",
-        },
-        error: "No default project set"
-      });
+      return NextResponse.json(
+        { error: "Project ID is required" },
+        { status: 400 }
+      );
     }
 
     // Verify user has access to this project
@@ -69,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     const projectData = projectDoc.data()! as Project;
-    
+
     // Verify user is a member or owner
     if (projectData.ownerId !== userId && !projectData.memberIds?.includes(userId)) {
       return NextResponse.json(
@@ -78,15 +58,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get team member count (already stored in memberIds array)
-    const teamMemberCount = projectData.memberIds?.length || 1;
+    // Get team member count (memberIds + owner)
+    const teamMemberCount = (projectData.memberIds?.length || 0);
+    console.log(`Project ${projectId} has ${projectData.memberIds?.length || 0} members including the owner = ${teamMemberCount} total`);
 
     // Count active API keys
+    const allKeysSnapshot = await adminDb
+      .collection("keys")
+      .where("projectId", "==", projectId)
+      .get();
+
     const keysSnapshot = await adminDb
       .collection("keys")
       .where("projectId", "==", projectId)
       .where("isActive", "==", true)
       .get();
+
+    console.log(`Total keys for project ${projectId}: ${allKeysSnapshot.size}, Active keys: ${keysSnapshot.size}`);
 
     // Count events in last 24 hours
     const twentyFourHoursAgo = admin.firestore.Timestamp.fromDate(
@@ -98,12 +86,16 @@ export async function GET(request: NextRequest) {
       .where("timestamp", ">=", twentyFourHoursAgo)
       .get();
 
+    console.log(`Events found for project ${projectId} in last 24h:`, eventsSnapshot.size);
+
     // Count active alerts
     const alertsSnapshot = await adminDb
       .collection("alerts")
       .where("projectId", "==", projectId)
       .where("status", "==", "pending")
       .get();
+
+    console.log(`Pending alerts found for project ${projectId}:`, alertsSnapshot.size);
 
     return NextResponse.json({
       stats: {

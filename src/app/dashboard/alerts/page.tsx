@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Column, Heading, Text, Button, Flex, Icon, Spinner, Input, Switch, NumberInput } from '@once-ui-system/core';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useProject } from '@/contexts/ProjectContext';
 import { AlertRule, MessageAlertRule, NotificationType } from '@/types/database';
 
 interface AlertConfig {
@@ -12,6 +13,7 @@ interface AlertConfig {
 }
 
 export default function AlertsPage() {
+  const { currentProjectId, loading: projectsLoading } = useProject();
   const [config, setConfig] = useState<AlertConfig>({
     enabled: false,
     phoneNumbers: [],
@@ -30,7 +32,7 @@ export default function AlertsPage() {
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && currentProjectId) {
         loadAlertConfig();
       } else {
         setLoading(false);
@@ -38,7 +40,7 @@ export default function AlertsPage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentProjectId]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -72,7 +74,7 @@ export default function AlertsPage() {
         return;
       }
 
-      const response = await fetch('/api/v1/alerts/config', {
+      const response = await fetch(`/api/v1/alerts/config?projectId=${currentProjectId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -121,7 +123,7 @@ export default function AlertsPage() {
       const token = await auth.currentUser?.getIdToken();
       if (!token) return;
 
-      const response = await fetch('/api/v1/alerts/config', {
+      const response = await fetch(`/api/v1/alerts/config?projectId=${currentProjectId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -189,7 +191,7 @@ export default function AlertsPage() {
         throw new Error('No authentication token');
       }
 
-      const response = await fetch('/api/v1/alerts/test', {
+      const response = await fetch(`/api/v1/alerts/test?projectId=${currentProjectId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -303,7 +305,7 @@ export default function AlertsPage() {
     });
   };
 
-  if (loading) {
+  if (loading || projectsLoading) {
     return (
       <Flex fillWidth fillHeight center style={{ minHeight: "60vh" }}>
         <Spinner size="l" />

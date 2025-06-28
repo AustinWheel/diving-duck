@@ -34,21 +34,8 @@ export async function GET(request: NextRequest) {
     let targetProjectId = projectId;
     
     if (!targetProjectId) {
-      // Get user's default project
-      const userDoc = await adminDb.collection("users").doc(userId).get();
-      if (!userDoc.exists) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
-      }
-      const userData = userDoc.data()!;
-      targetProjectId = userData.defaultProjectId || userData.projectIds?.[0];
-    }
-    
-    if (!targetProjectId) {
       return NextResponse.json(
-        { error: "No project specified or default project set" },
+        { error: "Project ID is required" },
         { status: 400 }
       );
     }
@@ -124,21 +111,8 @@ export async function PATCH(request: NextRequest) {
     let targetProjectId = projectId;
     
     if (!targetProjectId) {
-      // Get user's default project
-      const userDoc = await adminDb.collection("users").doc(userId).get();
-      if (!userDoc.exists) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
-      }
-      const userData = userDoc.data()!;
-      targetProjectId = userData.defaultProjectId || userData.projectIds?.[0];
-    }
-    
-    if (!targetProjectId) {
       return NextResponse.json(
-        { error: "No project specified or default project set" },
+        { error: "Project ID is required" },
         { status: 400 }
       );
     }

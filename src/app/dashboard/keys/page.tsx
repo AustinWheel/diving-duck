@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Column, Heading, Text, Button, Flex, Icon, Spinner, Input } from '@once-ui-system/core';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
+import { useProject } from '@/contexts/ProjectContext';
 import { FiCopy, FiRefreshCw, FiTrash2, FiEye, FiEyeOff } from 'react-icons/fi';
 
 interface ApiKey {
@@ -17,8 +19,8 @@ interface ApiKey {
 }
 
 export default function APIKeysPage() {
-  const [keys, setKeys] = useState<ApiKey[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentProjectId, loading: projectsLoading } = useProject();
+  const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
@@ -28,18 +30,32 @@ export default function APIKeysPage() {
   const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loadKeys();
-      } else {
-        setLoading(false);
+  // Fetch API keys using TanStack Query
+  const { data: keys = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['api-keys', currentProjectId],
+    queryFn: async () => {
+      if (!currentProjectId) throw new Error('No project selected');
+      
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('No auth token available');
+      
+      const response = await fetch(`/api/v1/keys?projectId=${currentProjectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch keys');
       }
-    });
-
-    return () => unsubscribe();
-  }, []);
+      
+      const data = await response.json();
+      return data.keys || [];
+    },
+    enabled: !!currentProjectId,
+    staleTime: 60 * 1000, // 1 minute
+  });
 
   useEffect(() => {
     if (toastMessage) {
@@ -51,41 +67,31 @@ export default function APIKeysPage() {
   }, [toastMessage]);
 
   const loadKeys = async () => {
-    try {
-      setLoading(true);
-      const auth = getAuth();
-      
-      // Wait a bit for auth to stabilize if needed
-      if (!auth.currentUser) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) {
-        console.log('No auth token available');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('/api/v1/keys', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch keys');
-      }
-
-      const data = await response.json();
-      setKeys(data.keys || []);
-    } catch (error) {
-      console.error('Error loading keys:', error);
-      setToastMessage({ message: 'Failed to load API keys', type: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    refetch();
   };
+
+  // Helper function for API calls (kept for mutations)
+  const makeApiCall = async (url: string, options: RequestInit) => {
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error('No auth token available');
+    
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'API request failed');
+    }
+    
+    return response.json();
+  };
+
 
   const createKey = async () => {
     if (!newKeyName.trim()) {
@@ -108,6 +114,7 @@ export default function APIKeysPage() {
         body: JSON.stringify({
           name: newKeyName,
           type: newKeyType,
+          projectId: currentProjectId,
         }),
       });
 
@@ -201,7 +208,7 @@ export default function APIKeysPage() {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  if (loading) {
+  if (loading || projectsLoading) {
     return (
       <Flex fillWidth fillHeight center style={{ minHeight: "60vh" }}>
         <Spinner size="l" />
