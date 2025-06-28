@@ -92,7 +92,7 @@ export default function DashboardLayout({
     {
       key: 'signout',
       label: (
-        <Flex gap="12" alignItems="center">
+        <Flex gap="12" center>
           <Icon name="logout" size="s" />
           <Text>Sign out</Text>
         </Flex>
