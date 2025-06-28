@@ -3,10 +3,13 @@
 import { useState, useEffect, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Flex, Text, Button, Avatar, Column, Icon, Select, Background, Spinner } from "@once-ui-system/core";
+import { Flex, Text, Button, Avatar, Column, Icon, Background, Spinner, Row } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProject } from "@/contexts/ProjectContext";
 import { signOut } from "@/lib/auth";
+import { PanelRight, PanelLeft, ChevronsUpDown, CircleCheck, Circle } from "lucide-react";
+import { Dropdown, ConfigProvider } from "antd";
+import type { MenuProps } from "antd";
 
 const navigationItems = [
   { icon: "grid", label: "Overview", href: "/dashboard" },
@@ -27,42 +30,22 @@ export default function DashboardLayout({
   const { user } = useAuth();
   const { projects, currentProject, currentProjectId, loading: projectsLoading, switchProject } = useProject();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [isPending, startTransition] = useTransition();
-  
+
   // Set sidebar open on desktop, closed on mobile
   useEffect(() => {
     const checkScreenSize = () => {
       setSidebarOpen(window.innerWidth >= 768);
     };
-    
+
     // Check on mount
     checkScreenSize();
-    
+
     // Check on resize
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const userMenu = document.querySelector('[data-user-menu]');
-      const userButton = document.querySelector('[data-user-button]');
-      
-      if (userMenu && !userMenu.contains(target) && userButton && !userButton.contains(target)) {
-        setShowUserMenu(false);
-      }
-    };
-
-    if (showUserMenu) {
-      setTimeout(() => {
-        document.addEventListener("click", handleClickOutside);
-      }, 0);
-      
-      return () => document.removeEventListener("click", handleClickOutside);
-    }
-  }, [showUserMenu]);
 
   const handleSignOut = async () => {
     try {
@@ -72,6 +55,52 @@ export default function DashboardLayout({
       console.error('Error signing out:', error);
     }
   };
+
+  // Project dropdown items
+  const projectItems: MenuProps['items'] = projects.map((project) => ({
+    key: project.id,
+    label: (
+      <Row vertical="center" horizontal="space-between" fillWidth gap="12">
+        <Text variant="body-default-m">
+          {project.displayName}
+        </Text>
+        <Row vertical="center" gap="8">
+          <Text variant="body-default-xs" onBackground="neutral-weak" style={{ opacity: 0.6 }}>
+            {project.role === 'owner' ? 'Owner' : 'Member'}
+          </Text>
+          {project.id === currentProjectId ? (
+            <CircleCheck size={16} style={{ color: '#4ade80', flexShrink: 0 }} />
+          ) : (
+            <Circle size={16} style={{ color: 'rgba(255, 255, 255, 0.3)', flexShrink: 0 }} />
+          )}
+        </Row>
+      </Row>
+    ),
+    onClick: () => {
+      switchProject(project.id);
+      router.refresh();
+    },
+    style: {
+      backgroundColor: project.id === currentProjectId ? 'rgba(255, 107, 53, 0.08)' : 'transparent',
+      padding: '4px 12px',
+      minHeight: '28px',
+    }
+  }));
+
+  // User menu items
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'signout',
+      label: (
+        <Flex gap="12" alignItems="center">
+          <Icon name="logout" size="s" />
+          <Text>Sign out</Text>
+        </Flex>
+      ),
+      onClick: handleSignOut,
+      danger: true,
+    }
+  ];
 
   return (
     <Flex fillWidth style={{ minHeight: "100vh", background: "var(--page-background)", position: "relative" }}>
@@ -102,7 +131,7 @@ export default function DashboardLayout({
           opacity: 40,
         }}
       />
-      
+
       {/* Sidebar */}
       <div
         style={{
@@ -120,39 +149,67 @@ export default function DashboardLayout({
           zIndex: 1,
         }}
       >
-        {/* Logo */}
+        {/* Logo and Toggle */}
         <Flex
           padding="24"
           gap="12"
           vertical="center"
+          horizontal={sidebarOpen ? "space-between" : "center"}
           style={{
             borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
             minHeight: "80px",
           }}
         >
           {sidebarOpen && (
-            <>
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="28" 
-                height="28" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="var(--brand-on-background-strong)" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
+            <Flex gap="12" vertical="center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--brand-on-background-strong)"
+                strokeWidth="2"
+                strokeLinecap="round"
                 strokeLinejoin="round"
                 style={{ flexShrink: 0 }}
-                >
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M15 19v-2a3 3 0 0 0 -6 0v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-14h4v3h3v-3h4v3h3v-3h4v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"/>
-                <path d="M3 11l18 0"/>
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M15 19v-2a3 3 0 0 0 -6 0v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-14h4v3h3v-3h4v3h3v-3h4v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
+                <path d="M3 11l18 0" />
               </svg>
               <Text variant="heading-strong-m" onBackground="neutral-strong">
                 Warden
               </Text>
-            </>
+            </Flex>
           )}
+
+          {/* Sidebar Toggle - Only show in header when sidebar is open */}
+          <div
+            onClick={() => setSidebarOpen(sidebar => !sidebar)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '12px',
+              backgroundColor: 'transparent',
+              color: 'var(--neutral-on-background-weak)',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              cursor: 'pointer',
+              marginBottom: '4px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
+              e.currentTarget.style.color = 'var(--neutral-on-background-strong)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--neutral-on-background-weak)';
+            }}
+          >
+            <PanelLeft size={20} />
+          </div>
         </Flex>
 
         {/* Project Selector */}
@@ -167,20 +224,71 @@ export default function DashboardLayout({
                 No projects yet
               </Text>
             ) : (
-              <Select
-                label="Project"
-                id="project-selector"
-                options={projects.map(project => ({
-                  value: project.id,
-                  label: project.displayName,
-                }))}
-                value={currentProjectId || ""}
-                onChange={(value) => {
-                  if (value) {
-                    switchProject(value);
-                  }
+              <ConfigProvider
+                theme={{
+                  token: {
+                    colorBgElevated: 'rgba(20, 20, 20, 0.98)',
+                    colorBorder: 'rgba(255, 255, 255, 0.08)',
+                    colorText: 'rgba(255, 255, 255, 0.9)',
+                    colorTextSecondary: 'rgba(255, 255, 255, 0.6)',
+                    borderRadius: 8,
+                    controlItemBgHover: 'rgba(255, 255, 255, 0.08)',
+                    controlItemBgActive: 'rgba(255, 107, 53, 0.08)',
+                    controlPaddingHorizontal: 0,
+                    padding: 4,
+                  },
                 }}
-              />
+              >
+                <Dropdown
+                  menu={{ items: projectItems }}
+                  trigger={['click']}
+                  placement="bottomLeft"
+                  overlayStyle={{
+                    minWidth: '248px',
+                  }}
+                  popupRender={(menu) => (
+                    <div style={{
+                      backgroundColor: 'rgba(20, 20, 20, 0.98)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+                      backdropFilter: 'blur(24px)',
+                      WebkitBackdropFilter: 'blur(24px)',
+                    }}>
+                      {menu}
+                    </div>
+                  )}
+                >
+                  <button
+                    style={{
+                      width: "100%",
+                      padding: "12px 16px",
+                      backgroundColor: "rgba(255, 255, 255, 0.02)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      color: "var(--neutral-on-background-strong)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.02)";
+                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                    }}
+                  >
+                    <Text variant="body-default-m" onBackground="neutral-strong">
+                      {currentProject?.displayName || "Select Project"}
+                    </Text>
+                    <ChevronsUpDown size={16} />
+                  </button>
+                </Dropdown>
+              </ConfigProvider>
             )}
           </div>
         )}
@@ -188,9 +296,9 @@ export default function DashboardLayout({
         {/* Navigation */}
         <Column style={{ flex: 1, padding: "8px" }}>
           {navigationItems.map((item) => {
-            const isActive = pathname === item.href || 
+            const isActive = pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
-            
+
             return (
               <Link
                 key={item.href}
@@ -242,121 +350,82 @@ export default function DashboardLayout({
           style={{
             padding: "16px",
             borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-            position: "relative",
           }}
         >
-          <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            style={{
-              width: "100%",
-              background: "none",
-              border: "none",
-              padding: sidebarOpen ? "8px" : "0px",
-              cursor: "pointer",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              transition: "background-color 0.2s ease",
+          <ConfigProvider
+            theme={{
+              token: {
+                colorBgElevated: 'rgba(20, 20, 20, 0.98)',
+                colorBorder: 'rgba(255, 255, 255, 0.08)',
+                colorText: 'rgba(255, 255, 255, 0.9)',
+                colorTextSecondary: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: 8,
+                controlItemBgHover: 'rgba(255, 255, 255, 0.08)',
+                colorError: 'rgba(255, 59, 48, 1)',
+                colorErrorHover: 'rgba(255, 59, 48, 0.8)',
+                colorErrorBg: 'rgba(255, 59, 48, 0.1)',
+                controlPaddingHorizontal: 0,
+                padding: 4,
+              },
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
-            data-user-button
           >
-            <Avatar
-              src={user?.photoURL || undefined}
-              fallback={user?.displayName?.charAt(0) || user?.email?.charAt(0) || "?"}
-              size="m"
-            />
-            {sidebarOpen && (
-              <Column gap="2" style={{ flex: 1, textAlign: "left" }}>
-                <Text variant="body-strong-s" onBackground="neutral-strong">
-                  {user?.displayName || "User"}
-                </Text>
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {user?.email}
-                </Text>
-              </Column>
-            )}
-          </button>
-
-          {/* User Menu Dropdown */}
-          {showUserMenu && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: "calc(100% + 8px)",
-                left: "16px",
-                right: "16px",
-                backgroundColor: "rgba(255, 255, 255, 0.04)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "12px",
-                padding: "8px",
-                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3)",
-                backdropFilter: "blur(24px)",
-                WebkitBackdropFilter: "blur(24px)",
-                minWidth: "120px",
-              }}
-              data-user-menu
+            <Dropdown
+              menu={{ items: userMenuItems }}
+              trigger={['click']}
+              placement="topLeft"
+              popupRender={(menu) => (
+                <div style={{
+                  backgroundColor: 'rgba(20, 20, 20, 0.98)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(24px)',
+                  WebkitBackdropFilter: 'blur(24px)',
+                }}>
+                  {menu}
+                </div>
+              )}
             >
-              <Button
-                onClick={handleSignOut}
-                variant="ghost"
-                size="s"
-                fillWidth
+              <button
                 style={{
-                  justifyContent: "flex-start",
-                  padding: "8px 12px",
+                  width: "100%",
+                  background: "none",
+                  border: "none",
+                  padding: sidebarOpen ? "8px" : "0px",
+                  cursor: "pointer",
                   borderRadius: "8px",
-                  color: "var(--danger-on-background-weak)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  transition: "background-color 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "rgba(255, 59, 48, 0.1)";
-                  e.currentTarget.style.color = "var(--danger-on-background-strong)";
+                  e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
-                  e.currentTarget.style.color = "var(--danger-on-background-weak)";
                 }}
               >
-                <Flex gap="12" vertical="center">
-                  <Icon name="logout" size="s" />
-                  <Text>Sign out</Text>
-                </Flex>
-              </Button>
-            </div>
-          )}
+                <Avatar
+                  src={user?.photoURL || undefined}
+                  fallback={user?.displayName?.charAt(0) || user?.email?.charAt(0) || "?"}
+                  size="m"
+                />
+                {sidebarOpen && (
+                  <Column gap="2" style={{ flex: 1, textAlign: "left" }}>
+                    <Text variant="body-strong-s" onBackground="neutral-strong">
+                      {user?.displayName || "User"}
+                    </Text>
+                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                      {user?.email}
+                    </Text>
+                  </Column>
+                )}
+              </button>
+            </Dropdown>
+          </ConfigProvider>
         </div>
 
-        {/* Sidebar Toggle */}
-        <Button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          variant="ghost"
-          size="s"
-          style={{
-            position: "absolute",
-            right: "-20px",
-            top: "24px",
-            width: "40px",
-            height: "40px",
-            borderRadius: "50%",
-            backgroundColor: "var(--page-background)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 0,
-          }}
-        >
-          <Icon 
-            name={sidebarOpen ? "chevronLeft" : "chevronRight"} 
-            size="s" 
-          />
-        </Button>
       </div>
 
       {/* Main Content */}

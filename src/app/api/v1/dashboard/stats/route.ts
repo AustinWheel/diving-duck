@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get team member count (memberIds + owner)
+    // Get team member count (memberIds includes owner)
     const teamMemberCount = (projectData.memberIds?.length || 0);
-    console.log(`Project ${projectId} has ${projectData.memberIds?.length || 0} members including the owner = ${teamMemberCount} total`);
+    console.log(`Project ${projectId} has ${teamMemberCount} members total`);
 
     // Count active API keys
     const allKeysSnapshot = await adminDb
