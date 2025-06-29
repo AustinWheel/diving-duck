@@ -9,6 +9,11 @@ interface TimeRangeSelectorProps {
 }
 
 const TIME_RANGE_OPTIONS = [
+  { value: 1, label: "1 hour" },
+  { value: 2, label: "2 hours" },
+  { value: 3, label: "3 hours" },
+  { value: 6, label: "6 hours" },
+  { value: 12, label: "12 hours" },
   { value: 24, label: "24 hours" },
   { value: 48, label: "48 hours" },
   { value: 72, label: "3 days" },

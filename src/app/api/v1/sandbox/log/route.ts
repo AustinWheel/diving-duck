@@ -57,49 +57,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Access denied to this project" }, { status: 403 });
     }
 
-    // Check if key is active
-    if (!apiKey.isActive) {
-      return NextResponse.json({ error: "API key is inactive" }, { status: 403 });
-    }
-
-    // Check expiration for test keys
-    if (apiKey.type === "test" && apiKey.expiresAt) {
-      const expirationDate =
-        apiKey.expiresAt instanceof admin.firestore.Timestamp
-          ? apiKey.expiresAt.toDate()
-          : new Date(apiKey.expiresAt);
-
-      if (expirationDate < new Date()) {
-        return NextResponse.json({ error: "API key has expired" }, { status: 403 });
-      }
-    }
-
-    // Create event document
-    const eventData = {
-      projectId: apiKey.projectId,
-      keyId: body.keyId,
-      keyType: apiKey.type,
-      type: body.type,
-      message: body.message,
-      timestamp: admin.firestore.Timestamp.now(),
-      userId: userId, // Log which user sent from sandbox
-      meta: body.meta || {},
-      ip: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "sandbox",
-      userAgent: "Warden Dashboard Sandbox",
-    };
-
-    // Store event in Firestore
-    const eventDoc = await adminDb.collection("events").add(eventData);
-
-    // Update last used timestamp for the API key
-    await keyDoc.ref.update({
-      lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+    // Forward to the main log endpoint
+    const baseUrl = request.url.replace(/\/sandbox\/log$/, '/log');
+    const logRequest = new Request(baseUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey.key}`,
+        "Content-Type": "application/json",
+        "X-Forwarded-For": request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "sandbox",
+        "User-Agent": "Warden Dashboard Sandbox"
+      },
+      body: JSON.stringify({
+        type: body.type,
+        message: body.message,
+        meta: body.meta,
+        userId: userId // Include the user ID who sent from sandbox
+      })
     });
 
-    return NextResponse.json({
-      status: "logged",
-      eventId: eventDoc.id,
-    });
+    // Call the main log endpoint
+    const response = await fetch(logRequest);
+    const responseData = await response.json();
+
+    // Return the response from the main log endpoint
+    return NextResponse.json(responseData, { status: response.status });
   } catch (error) {
     console.error("Error in sandbox log:", error);
     return NextResponse.json({ error: "Failed to send log" }, { status: 500 });

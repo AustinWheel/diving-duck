@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin from "@/lib/firebaseAdmin";
-import { LogEvent, ApiKey, LogType } from "@/types/database";
+import { LogEvent, ApiKey, LogType, BucketedEvents, Project } from "@/types/database";
 import { checkAlertsForEvent } from "@/lib/alerts/alert-checker";
-import { canSendEvent, incrementDailyEvents } from "@/lib/subscription";
+import { canSendEvent, incrementDailyEvents, getSubscriptionLimits } from "@/lib/subscription";
+import { calculateBucketId, calculateBucketTimes } from "@/lib/bucketHelpers";
 
 interface LogRequestBody {
   type?: LogType; // Optional, defaults to 'text'
@@ -114,53 +115,127 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create event document
+    // Get project details for bucket configuration
+    const projectDoc = await db.collection("projects").doc(apiKey.projectId).get();
+    if (!projectDoc.exists) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+    const project = projectDoc.data() as Project;
+    
+    // Get bucket configuration
+    const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+    const bucketMinutes = limits.eventBucketMinutes;
+
+    // Create event data
+    const eventTimestamp = body.timestamp ? new Date(body.timestamp) : new Date();
     const eventData: Omit<LogEvent, "id"> = {
       projectId: apiKey.projectId,
       keyId: keyDoc.id,
       keyType: apiKey.type,
       type: logType,
       message: body.message,
-      timestamp: body.timestamp ? new Date(body.timestamp) : new Date(),
+      timestamp: eventTimestamp,
       userId: body.userId,
       meta: body.meta,
       ip: ip,
       userAgent: userAgent,
     };
 
-    // Store event in Firestore
-    const eventsRef = db.collection("events");
-    const eventDoc = await eventsRef.add({
-      ...eventData,
-      timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp),
-    });
+    // Calculate bucket ID and times
+    const bucketId = calculateBucketId(apiKey.projectId, eventTimestamp, bucketMinutes);
+    const { start: bucketStart, end: bucketEnd } = calculateBucketTimes(eventTimestamp, bucketMinutes);
 
-    // Update last used timestamp for the API key and increment event counter
-    await Promise.all([
-      keyDoc.ref.update({
-        lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }),
-      incrementDailyEvents(apiKey.projectId)
-    ]);
+    let eventId: string;
+    
+    try {
+      // Store event in bucket using transaction
+      await db.runTransaction(async (transaction) => {
+        const bucketRef = db.collection("bucketedEvents").doc(bucketId);
+        const bucketDoc = await transaction.get(bucketRef);
+        
+        if (!bucketDoc.exists) {
+          // Create new bucket
+          const newBucket: BucketedEvents = {
+            id: bucketId,
+            projectId: apiKey.projectId,
+            bucketStart: bucketStart,
+            bucketEnd: bucketEnd,
+            events: [{
+              ...eventData,
+              timestamp: eventData.timestamp
+            }],
+            eventCount: 1,
+            lastUpdated: new Date()
+          };
+          
+          transaction.set(bucketRef, {
+            ...newBucket,
+            bucketStart: admin.firestore.Timestamp.fromDate(bucketStart),
+            bucketEnd: admin.firestore.Timestamp.fromDate(bucketEnd),
+            events: [{
+              ...eventData,
+              timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp)
+            }],
+            lastUpdated: admin.firestore.Timestamp.now()
+          });
+        } else {
+          // Append to existing bucket
+          const currentData = bucketDoc.data() as any;
+          const updatedEvents = [...currentData.events, {
+            ...eventData,
+            timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp)
+          }];
+          
+          transaction.update(bucketRef, {
+            events: updatedEvents,
+            eventCount: updatedEvents.length,
+            lastUpdated: admin.firestore.Timestamp.now()
+          });
+        }
+        
+        // Generate event ID based on bucket ID and event count
+        eventId = `${bucketId}_${bucketDoc.exists ? bucketDoc.data()!.eventCount : 0}`;
+      });
 
-    // Log to console for debugging
-    console.log("[LOG API] Event stored:", {
-      eventId: eventDoc.id,
-      projectId: apiKey.projectId,
-      keyType: apiKey.type,
-      logType: logType,
-      message: body.message,
-    });
+      // Update last used timestamp for the API key and increment event counter
+      await Promise.all([
+        keyDoc.ref.update({
+          lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }),
+        incrementDailyEvents(apiKey.projectId)
+      ]);
 
-    // Check if this event triggers any alerts
-    const eventWithId = { ...eventData, id: eventDoc.id };
-    // Run alert checking asynchronously - don't block the response
-    checkAlertsForEvent(eventWithId).catch((error) => {
-      console.error("[LOG API] Error checking alerts:", error);
-    });
+      // Check if this event triggers any alerts
+      const eventWithId = { ...eventData, id: eventId };
+      // Run alert checking asynchronously - don't block the response
+      checkAlertsForEvent(eventWithId).catch((error) => {
+        console.error("[LOG API] Error checking alerts:", error);
+      });
 
-    // Return success response
-    return NextResponse.json({ status: "logged", eventId: eventDoc.id }, { status: 200 });
+      // Return success response
+      return NextResponse.json({ status: "logged", eventId, bucketId }, { status: 200 });
+    } catch (error: any) {
+      // Handle document size exceeded error
+      if (error.code === 'failed-precondition' && error.message?.includes('maximum size')) {
+        const tierName = project.subscriptionTier === "pro" ? "Pro" : 
+                        project.subscriptionTier === "enterprise" ? "Enterprise" : "Basic";
+        const upgradeTo = project.subscriptionTier === "basic" ? "Pro for higher event limits" :
+                         project.subscriptionTier === "pro" ? "Enterprise for even higher limits" :
+                         "contact support for custom limits";
+                         
+        return NextResponse.json({
+          error: "Event limit exceeded",
+          message: `You've exceeded the maximum events for this ${bucketMinutes}-minute period.`,
+          suggestion: `Upgrade to ${upgradeTo}.`,
+          details: {
+            tier: project.subscriptionTier || "basic",
+            bucketPeriod: `${bucketMinutes} minutes`
+          }
+        }, { status: 403 });
+      }
+      
+      throw error;
+    }
   } catch (error) {
     console.error("[LOG API] Unexpected error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

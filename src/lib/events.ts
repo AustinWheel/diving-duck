@@ -1,6 +1,8 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import admin from "firebase-admin";
-import { LogEvent, Alert, LogType } from "@/types/database";
+import { LogEvent, Alert, LogType, BucketedEvents, Project } from "@/types/database";
+import { calculateBucketRange } from "@/lib/bucketHelpers";
+import { getSubscriptionLimits } from "@/lib/subscription";
 
 export interface EventsQueryOptions {
   projectId: string;
@@ -9,6 +11,7 @@ export interface EventsQueryOptions {
   filters?: {
     messages?: string[];
     logTypes?: LogType[];
+    search?: string;
   };
   limit?: number;
 }
@@ -26,57 +29,94 @@ export class EventsService {
     console.log(`[Firebase READ - Events] Querying events for project ${projectId}`);
     console.log(`[Firebase READ - Events] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
-    let query = adminDb
-      .collection("events")
-      .where("projectId", "==", projectId)
-      .where("timestamp", ">=", admin.firestore.Timestamp.fromDate(startTime))
-      .where("timestamp", "<=", admin.firestore.Timestamp.fromDate(endTime))
-      .orderBy("timestamp", "desc")
-      .limit(limit);
+    // Get project to determine bucket configuration
+    const projectDoc = await adminDb.collection("projects").doc(projectId).get();
+    if (!projectDoc.exists) {
+      throw new Error("Project not found");
+    }
+    const project = projectDoc.data() as Project;
+    const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+    const bucketMinutes = limits.eventBucketMinutes;
 
-    if (filters?.logTypes && filters.logTypes.length > 0) {
-      console.log(`[EventsService.queryEvents] Filtering by log types:`, filters.logTypes);
-      query = query.where("type", "in", filters.logTypes);
+    // Get all bucket IDs for the time range
+    const bucketIds = calculateBucketRange(projectId, startTime, endTime, bucketMinutes);
+    console.log(`[Firebase READ - Events] Querying ${bucketIds.length} buckets`);
+
+    // Query all relevant buckets
+    const bucketPromises = bucketIds.map(bucketId => 
+      adminDb.collection("bucketedEvents").doc(bucketId).get()
+    );
+    
+    const bucketDocs = await Promise.all(bucketPromises);
+
+    // Extract all events from buckets
+    let allEvents: LogEvent[] = [];
+    for (const bucketDoc of bucketDocs) {
+      if (bucketDoc.exists) {
+        const bucketData = bucketDoc.data() as any;
+        if (bucketData.events) {
+          const bucketEvents = bucketData.events.map((event: any, index: number) => ({
+            ...event,
+            id: `${bucketDoc.id}_${index}`,
+            timestamp: event.timestamp?.toDate ? event.timestamp.toDate() : new Date(event.timestamp)
+          }));
+          
+          // Filter events within exact time range
+          const eventsInRange = bucketEvents.filter((event: LogEvent) => 
+            event.timestamp >= startTime && event.timestamp <= endTime
+          );
+          
+          allEvents = allEvents.concat(eventsInRange);
+        }
+      }
     }
 
-    const snapshot = await query.get();
-    console.log(`[Firebase READ - Events] Found ${snapshot.size} events from Firestore`);
+    console.log(`[Firebase READ - Events] Found ${allEvents.length} total events from buckets`);
 
-    const events = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      // Check if timestamp exists and is a Firestore Timestamp
-      if (!data.timestamp) {
-        console.warn(`[EventsService.queryEvents] Event ${doc.id} has no timestamp field`);
-      }
-      const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp || Date.now());
-      return {
-        id: doc.id,
-        ...data,
-        timestamp: timestamp,
-      };
-    }) as LogEvent[];
+    // Apply type filter if specified
+    if (filters?.logTypes && filters.logTypes.length > 0) {
+      console.log(`[EventsService.queryEvents] Filtering by log types:`, filters.logTypes);
+      allEvents = allEvents.filter(event => 
+        filters.logTypes!.includes(event.type)
+      );
+    }
+
+    // Filter by messages if specified
+    if (filters?.messages && filters.messages.length > 0) {
+      console.log(`[EventsService.queryEvents] Filtering by messages:`, filters.messages);
+      allEvents = allEvents.filter(event => 
+        filters.messages!.some(msg => event.message.includes(msg))
+      );
+      console.log(`[EventsService.queryEvents] After message filter: ${allEvents.length} events`);
+    }
+
+    // Apply search filter if specified
+    if (filters?.search) {
+      const searchLower = filters.search.toLowerCase();
+      console.log(`[EventsService.queryEvents] Filtering by search term:`, filters.search);
+      allEvents = allEvents.filter(event =>
+        event.message.toLowerCase().includes(searchLower) ||
+        (event.meta && JSON.stringify(event.meta).toLowerCase().includes(searchLower)) ||
+        (event.userId && event.userId.toLowerCase().includes(searchLower))
+      );
+      console.log(`[EventsService.queryEvents] After search filter: ${allEvents.length} events`);
+    }
+
+    // Sort by timestamp (newest first) and apply limit
+    allEvents.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    const limitedEvents = allEvents.slice(0, limit);
 
     // Log sample event for debugging
-    if (events.length > 0) {
+    if (limitedEvents.length > 0) {
       console.log(`[EventsService.queryEvents] Sample event:`, {
-        id: events[0].id,
-        type: events[0].type,
-        message: events[0].message,
-        timestamp: events[0].timestamp,
+        id: limitedEvents[0].id,
+        type: limitedEvents[0].type,
+        message: limitedEvents[0].message,
+        timestamp: limitedEvents[0].timestamp,
       });
     }
 
-    // Filter by messages in memory if specified
-    if (filters?.messages && filters.messages.length > 0) {
-      console.log(`[EventsService.queryEvents] Filtering by messages:`, filters.messages);
-      const filtered = events.filter((event) => 
-        filters.messages!.some((msg) => event.message.includes(msg))
-      );
-      console.log(`[EventsService.queryEvents] After message filter: ${filtered.length} events`);
-      return filtered;
-    }
-
-    return events;
+    return limitedEvents;
   }
 
   static async queryAlerts(options: AlertsQueryOptions): Promise<Alert[]> {

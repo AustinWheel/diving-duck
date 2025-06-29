@@ -1,7 +1,8 @@
 import admin from "@/lib/firebaseAdmin";
 const adminDb = admin.firestore();
-import { Project, LogEvent, Alert, AlertRule, LogType } from "@/types/database";
-import { canSendAlert, incrementDailyAlerts } from "@/lib/subscription";
+import { Project, LogEvent, Alert, AlertRule, LogType, BucketedEvents } from "@/types/database";
+import { canSendAlert, incrementDailyAlerts, getSubscriptionLimits } from "@/lib/subscription";
+import { calculateBucketRange } from "@/lib/bucketHelpers";
 
 export async function checkAlertsForEvent(event: LogEvent) {
   try {
@@ -31,19 +32,46 @@ export async function checkAlertsForEvent(event: LogEvent) {
 async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule) {
   const now = new Date();
 
+  // Get bucket configuration
+  const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+  const bucketMinutes = limits.eventBucketMinutes;
+
   // Check global limit first
   if (rule.globalLimit?.enabled) {
     const windowStart = new Date(now.getTime() - rule.globalLimit.windowMinutes * 60 * 1000);
 
-    // Count all events in the window
-    const eventsQuery = adminDb
-      .collection("events")
-      .where("projectId", "==", event.projectId)
-      .where("timestamp", ">=", admin.firestore.Timestamp.fromDate(windowStart))
-      .where("timestamp", "<=", admin.firestore.Timestamp.fromDate(now));
+    // Get all bucket IDs for the time window
+    const bucketIds = calculateBucketRange(event.projectId, windowStart, now, bucketMinutes);
 
-    const snapshot = await eventsQuery.get();
-    const eventCount = snapshot.size;
+    // Query all relevant buckets
+    const bucketPromises = bucketIds.map(bucketId => 
+      adminDb.collection("bucketedEvents").doc(bucketId).get()
+    );
+    
+    const bucketDocs = await Promise.all(bucketPromises);
+
+    // Count all events in the window
+    let eventCount = 0;
+    const eventIds: string[] = [];
+    
+    for (const bucketDoc of bucketDocs) {
+      if (bucketDoc.exists) {
+        const bucketData = bucketDoc.data() as any;
+        if (bucketData.events) {
+          // Filter events within the exact time window
+          const eventsInWindow = bucketData.events.filter((e: any) => {
+            const timestamp = e.timestamp?.toDate ? e.timestamp.toDate() : new Date(e.timestamp);
+            return timestamp >= windowStart && timestamp <= now;
+          });
+          eventCount += eventsInWindow.length;
+          
+          // Generate event IDs
+          eventsInWindow.forEach((e: any, index: number) => {
+            eventIds.push(`${bucketDoc.id}_${index}`);
+          });
+        }
+      }
+    }
 
     if (eventCount >= rule.globalLimit.maxAlerts) {
       // Check if we already have a recent alert for this threshold
@@ -63,7 +91,7 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
           eventCount: eventCount,
           windowStart: windowStart,
           windowEnd: now,
-          eventIds: snapshot.docs.map((doc) => doc.id),
+          eventIds: eventIds,
         });
       }
     }
@@ -84,21 +112,44 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
 
       const windowStart = new Date(now.getTime() - messageRule.windowMinutes * 60 * 1000);
 
+      // Get all bucket IDs for the time window
+      const bucketIds = calculateBucketRange(event.projectId, windowStart, now, bucketMinutes);
+
+      // Query all relevant buckets
+      const bucketPromises = bucketIds.map(bucketId => 
+        adminDb.collection("bucketedEvents").doc(bucketId).get()
+      );
+      
+      const bucketDocs = await Promise.all(bucketPromises);
+
       // Count matching events in the window
-      let eventsQuery = adminDb
-        .collection("events")
-        .where("projectId", "==", event.projectId)
-        .where("message", "==", messageRule.message)
-        .where("timestamp", ">=", admin.firestore.Timestamp.fromDate(windowStart))
-        .where("timestamp", "<=", admin.firestore.Timestamp.fromDate(now));
-
-      // Add log type filter if specified
-      if (messageRule.logTypes?.length) {
-        eventsQuery = eventsQuery.where("type", "in", messageRule.logTypes);
+      let eventCount = 0;
+      const eventIds: string[] = [];
+      
+      for (const bucketDoc of bucketDocs) {
+        if (bucketDoc.exists) {
+          const bucketData = bucketDoc.data() as any;
+          if (bucketData.events) {
+            // Filter events that match criteria
+            const matchingEvents = bucketData.events.filter((e: any) => {
+              const timestamp = e.timestamp?.toDate ? e.timestamp.toDate() : new Date(e.timestamp);
+              const timeMatch = timestamp >= windowStart && timestamp <= now;
+              const messageMatch = e.message === messageRule.message;
+              const typeMatch = !messageRule.logTypes?.length || messageRule.logTypes.includes(e.type);
+              
+              return timeMatch && messageMatch && typeMatch;
+            });
+            
+            eventCount += matchingEvents.length;
+            
+            // Generate event IDs for matching events
+            matchingEvents.forEach((e: any) => {
+              const eventIndex = bucketData.events.indexOf(e);
+              eventIds.push(`${bucketDoc.id}_${eventIndex}`);
+            });
+          }
+        }
       }
-
-      const snapshot = await eventsQuery.get();
-      const eventCount = snapshot.size;
 
       if (eventCount >= messageRule.maxAlerts) {
         // Check if we already have a recent alert for this message
@@ -118,7 +169,7 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
             eventCount: eventCount,
             windowStart: windowStart,
             windowEnd: now,
-            eventIds: snapshot.docs.map((doc) => doc.id),
+            eventIds: eventIds,
           });
         }
       }

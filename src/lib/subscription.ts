@@ -13,6 +13,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionLimits> = 
     alertRules: 1, // 1 alert rule
     activeTestKeys: 1, // 1 active test key
     activeProdKeys: 1, // 1 active production key
+    eventBucketMinutes: 60, // 1 hour buckets
   },
   pro: {
     teamMembers: 11, // Owner + 10 invites = 11 total members
@@ -23,6 +24,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionLimits> = 
     alertRules: 10,
     activeTestKeys: 5,
     activeProdKeys: 5,
+    eventBucketMinutes: 20, // 20 minute buckets
   },
   enterprise: {
     teamMembers: -1, // Unlimited
@@ -33,6 +35,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionLimits> = 
     alertRules: -1, // Unlimited
     activeTestKeys: -1, // Unlimited
     activeProdKeys: -1, // Unlimited
+    eventBucketMinutes: 5, // 5 minute buckets
   },
 };
 

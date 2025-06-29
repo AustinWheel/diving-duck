@@ -19,8 +19,8 @@ export default function Dashboard() {
   const { currentProjectId, loading: projectsLoading } = useProject();
   const router = useRouter();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
-  const [timeRange, setTimeRange] = useState(24); // hours
-  const [stepSize, setStepSize] = useState(60); // minutes
+  const [timeRange, setTimeRange] = useState(1); // hours - default to 1 hour
+  const [stepSize, setStepSize] = useState(1); // minutes - default to 1 minute
   const [messageFilter, setMessageFilter] = useState<string | null>(null);
   const [logTypeFilter, setLogTypeFilter] = useState<LogType[]>([]);
 
@@ -53,7 +53,8 @@ export default function Dashboard() {
       return data.stats;
     },
     enabled: !!currentProjectId && !checkingOnboarding,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // No caching
+    gcTime: 0, // Remove from cache immediately
     refetchInterval: false, // Disable automatic refetching
   });
 
@@ -71,10 +72,10 @@ export default function Dashboard() {
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw new Error("No auth token available");
 
-      // Round timestamps to nearest 5 minutes to ensure consistent cache keys
+      // Calculate time range - round to nearest minute for consistent caching
       const now = new Date();
-      const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
-      const endTime = new Date(Math.floor(now.getTime() / fiveMinutes) * fiveMinutes); // Round to 5 minutes
+      const oneMinute = 60 * 1000; // 1 minute in milliseconds
+      const endTime = new Date(Math.floor(now.getTime() / oneMinute) * oneMinute); // Round down to minute
       const startTime = new Date(endTime.getTime() - timeRange * 60 * 60 * 1000);
 
       const body: any = {
@@ -120,7 +121,8 @@ export default function Dashboard() {
       return data;
     },
     enabled: !!currentProjectId && !checkingOnboarding,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // No caching
+    gcTime: 0, // Remove from cache immediately
     refetchInterval: false, // Disable automatic refetching
   });
 
@@ -138,8 +140,12 @@ export default function Dashboard() {
   // Update step size when time range changes
   useEffect(() => {
     // Adjust step size based on time range
-    if (timeRange <= 24) {
-      setStepSize(60); // 1 hour for 24 hours
+    if (timeRange <= 1) {
+      setStepSize(1); // 1 minute for 1 hour
+    } else if (timeRange <= 6) {
+      setStepSize(5); // 5 minutes for up to 6 hours
+    } else if (timeRange <= 24) {
+      setStepSize(30); // 30 minutes for 24 hours
     } else if (timeRange <= 72) {
       setStepSize(60); // 1 hour for 3 days
     } else if (timeRange <= 168) {

@@ -19,6 +19,7 @@ import {
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
 import { LogType } from "@/types/database";
+import TimeRangeSelector from "@/components/TimeRangeSelector";
 
 interface LogEvent {
   id: string;
@@ -44,9 +45,7 @@ export default function EventLogsPage() {
   const { currentProjectId, loading: projectsLoading } = useProject();
   const [events, setEvents] = useState<LogEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [timeRange, setTimeRange] = useState(1); // Default to 1 hour
   const [selectedType, setSelectedType] = useState<LogType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"logs" | "sandbox">("logs");
@@ -77,19 +76,11 @@ export default function EventLogsPage() {
     });
 
     return () => unsubscribe();
-  }, [selectedType, currentProjectId]);
+  }, [selectedType, currentProjectId, timeRange]);
 
-  const loadEvents = async (cursor?: string) => {
+  const loadEvents = async () => {
     try {
-      // Preserve scroll position when loading more
-      const scrollContainer = document.querySelector('[style*="overflow: auto"]') as HTMLElement;
-      const scrollTop = scrollContainer?.scrollTop || 0;
-
-      if (!cursor) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+      setLoading(true);
 
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
@@ -98,9 +89,8 @@ export default function EventLogsPage() {
       const params = new URLSearchParams();
       if (currentProjectId) params.append("projectId", currentProjectId);
       if (selectedType !== "all") params.append("type", selectedType);
-      if (cursor) params.append("startAfter", cursor);
       if (searchQuery) params.append("search", searchQuery);
-      params.append("limit", "20");
+      params.append("timeRange", timeRange.toString());
 
       const response = await fetch(`/api/v1/events?${params}`, {
         headers: {
@@ -113,27 +103,11 @@ export default function EventLogsPage() {
       }
 
       const data = await response.json();
-
-      if (cursor) {
-        setEvents((prev) => [...prev, ...data.events]);
-      } else {
-        setEvents(data.events);
-      }
-
-      setNextCursor(data.nextCursor);
-      setHasMore(data.hasMore);
-
-      // Restore scroll position after DOM update
-      if (cursor && scrollContainer) {
-        requestAnimationFrame(() => {
-          scrollContainer.scrollTop = scrollTop;
-        });
-      }
+      setEvents(data.events || []);
     } catch (error) {
       console.error("Error loading events:", error);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
 
@@ -386,6 +360,8 @@ export default function EventLogsPage() {
               style={{ maxWidth: "300px" }}
             />
 
+            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+
             <Button onClick={() => loadEvents()} variant="secondary" size="m">
               <Icon name="refresh" size="s" style={{ marginRight: "8px" }} />
               Refresh
@@ -394,13 +370,12 @@ export default function EventLogsPage() {
 
           {/* Events Table */}
           {events.length === 0 ? (
-            <div
+            <Column vertical="center" horizontal="center"
               style={{
                 padding: "48px",
                 backgroundColor: "rgba(255, 255, 255, 0.02)",
                 border: "1px solid rgba(255, 255, 255, 0.08)",
                 borderRadius: "12px",
-                textAlign: "center",
               }}
             >
               <Icon name="list" size="l" color="var(--neutral-on-background-weak)" />
@@ -410,7 +385,7 @@ export default function EventLogsPage() {
               <Text variant="body-default-s" onBackground="neutral-weak">
                 Events will appear here when your application sends logs
               </Text>
-            </div>
+            </Column>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table
@@ -588,21 +563,6 @@ export default function EventLogsPage() {
             </div>
           )}
 
-          {hasMore && (
-            <Flex center style={{ marginTop: "16px" }}>
-              <Button
-                onClick={(e) => {
-                  e.preventDefault();
-                  loadEvents(nextCursor!);
-                }}
-                variant="secondary"
-                size="m"
-                disabled={loadingMore}
-              >
-                {loadingMore ? <Spinner size="s" /> : "Load More"}
-              </Button>
-            </Flex>
-          )}
 
           {/* Event Details Modal */}
           {selectedEvent && (

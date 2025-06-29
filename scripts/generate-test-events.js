@@ -63,6 +63,30 @@ function getRandomMessage(type) {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
+// Function to get random delay between events
+function getRandomDelay() {
+  // Generate delays with different probabilities:
+  // 20% chance: very fast (100ms - 500ms)
+  // 30% chance: fast (500ms - 2s)
+  // 30% chance: normal (2s - 5s)
+  // 20% chance: slow (5s - 10s)
+  const random = Math.random();
+  
+  if (random < 0.2) {
+    // Very fast burst
+    return Math.floor(Math.random() * 400) + 100;
+  } else if (random < 0.5) {
+    // Fast
+    return Math.floor(Math.random() * 1500) + 500;
+  } else if (random < 0.8) {
+    // Normal
+    return Math.floor(Math.random() * 3000) + 2000;
+  } else {
+    // Slow
+    return Math.floor(Math.random() * 5000) + 5000;
+  }
+}
+
 // Function to send event
 function sendEvent(apiKey) {
   const type = selectEventType();
@@ -127,19 +151,36 @@ if (!apiKey) {
 
 console.log('Starting event generator...');
 console.log(`Using API key: ${apiKey.substring(0, 10)}...`);
-console.log('Sending events every 5 seconds. Press Ctrl+C to stop.\n');
+console.log('Sending events with variable timing (100ms - 10s). Press Ctrl+C to stop.\n');
+
+let timeoutId;
+let isRunning = true;
+
+// Function to schedule next event
+function scheduleNextEvent() {
+  if (!isRunning) return;
+  
+  const delay = getRandomDelay();
+  console.log(`[${new Date().toISOString()}] Next event in ${(delay / 1000).toFixed(1)}s`);
+  
+  timeoutId = setTimeout(() => {
+    sendEvent(apiKey);
+    scheduleNextEvent();
+  }, delay);
+}
 
 // Send first event immediately
 sendEvent(apiKey);
 
-// Send events every 5 seconds
-const interval = setInterval(() => {
-  sendEvent(apiKey);
-}, 5000);
+// Start the scheduling
+scheduleNextEvent();
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n\nStopping event generator...');
-  clearInterval(interval);
+  isRunning = false;
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+  }
   process.exit(0);
 });

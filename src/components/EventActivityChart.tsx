@@ -48,11 +48,14 @@ const LOG_TYPE_COLORS = {
 };
 
 const STEP_SIZE_OPTIONS = [
+  { value: 1, label: "1 minute" },
+  { value: 5, label: "5 minutes" },
+  { value: 10, label: "10 minutes" },
+  { value: 30, label: "30 minutes" },
   { value: 60, label: "1 hour" },
   { value: 120, label: "2 hours" },
   { value: 180, label: "3 hours" },
   { value: 240, label: "4 hours" },
-  { value: 300, label: "5 hours" },
   { value: 360, label: "6 hours" },
   { value: 720, label: "12 hours" },
   { value: 1440, label: "24 hours" },

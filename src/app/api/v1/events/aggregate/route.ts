@@ -22,7 +22,7 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_TTL = 1 * 60 * 1000; // 1 minute in milliseconds
 
 // Generate cache key from request parameters
 function getCacheKey(projectId: string, startTime: string, endTime: string, filters?: any): string {
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Time range cannot exceed 2 weeks" }, { status: 400 });
     }
 
-    // Validate step size
-    const validStepSizes = [60, 120, 180, 240, 300, 360, 720, 1440];
+    // Validate step size (in minutes)
+    const validStepSizes = [1, 5, 10, 30, 60, 120, 180, 240, 300, 360, 720, 1440];
     if (!validStepSizes.includes(stepSize)) {
       return NextResponse.json({ error: "Invalid step size" }, { status: 400 });
     }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin, { adminDb } from "@/lib/firebaseAdmin";
 import { Project, User } from "@/types/database";
+import { getSubscriptionLimits } from "@/lib/subscription";
+import { calculateBucketRange } from "@/lib/bucketHelpers";
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,15 +63,30 @@ export async function GET(request: NextRequest) {
       .where("isActive", "==", true)
       .get();
 
-    // Count events in last 24 hours
-    const twentyFourHoursAgo = admin.firestore.Timestamp.fromDate(
-      new Date(Date.now() - 24 * 60 * 60 * 1000),
+    // Get bucket configuration
+    const limits = projectData.subscriptionLimits || getSubscriptionLimits(projectData.subscriptionTier || "basic");
+    const bucketMinutes = limits.eventBucketMinutes;
+
+    // Calculate time range for last 24 hours
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - 24 * 60 * 60 * 1000);
+
+    // Get all bucket IDs for the time range
+    const bucketIds = calculateBucketRange(projectId, startTime, endTime, bucketMinutes);
+
+    // Query all relevant buckets and sum event counts
+    let totalEventCount = 0;
+    const bucketPromises = bucketIds.map(bucketId => 
+      adminDb.collection("bucketedEvents").doc(bucketId).get()
     );
-    const eventsSnapshot = await adminDb
-      .collection("events")
-      .where("projectId", "==", projectId)
-      .where("timestamp", ">=", twentyFourHoursAgo)
-      .get();
+    
+    const bucketDocs = await Promise.all(bucketPromises);
+    for (const bucketDoc of bucketDocs) {
+      if (bucketDoc.exists) {
+        const bucketData = bucketDoc.data();
+        totalEventCount += bucketData?.eventCount || 0;
+      }
+    }
 
     // Count active alerts
     const alertsSnapshot = await adminDb
@@ -80,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       stats: {
-        events: eventsSnapshot.size,
+        events: totalEventCount,
         alerts: alertsSnapshot.size,
         apiKeys: keysSnapshot.size,
         teamMembers: teamMemberCount,

@@ -17,6 +17,7 @@ import {
 } from "@once-ui-system/core";
 import { Providers } from "@/components/Providers";
 import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 export async function generateMetadata() {
   return Meta.generate({
@@ -160,6 +161,7 @@ export default function RootLayout({
           />
           {children}
           <Analytics />
+          <GoogleAnalytics gaId="G-7FGBJZBFQL" />
         </Column>
       </Providers>
     </Flex>
