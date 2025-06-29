@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import admin from "@/lib/firebaseAdmin";
 import { getAuth } from "firebase-admin/auth";
 import { nanoid } from "nanoid";
+import { getSubscriptionLimits } from "@/lib/subscription";
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,8 +63,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Project name already taken" }, { status: 409 });
     }
 
-    // Create the project
+    // Create the project with basic tier
     const projectRef = adminDb.collection("projects").doc();
+    const tier = "basic";
+    const limits = getSubscriptionLimits(tier);
+    
+    // Initialize usage tracking
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    tomorrow.setUTCHours(0, 0, 0, 0);
+    
     const projectData = {
       id: projectRef.id,
       name: name.toLowerCase(),
@@ -72,13 +82,20 @@ export async function POST(request: NextRequest) {
       memberIds: [userId], // Owner is also a member
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      subscriptionTier: tier,
+      subscriptionLimits: limits,
+      usage: {
+        dailyEvents: 0,
+        dailyEventsResetAt: admin.firestore.Timestamp.fromDate(tomorrow),
+        dailyAlerts: 0,
+        dailyAlertsResetAt: admin.firestore.Timestamp.fromDate(tomorrow),
+        totalTestAlerts: 0,
+        lastUpdated: admin.firestore.Timestamp.now(),
+      },
       alertConfig: {
-        smsEnabled: false,
+        enabled: false,
         phoneNumbers: [],
-        thresholds: {
-          count: 10,
-          windowMinutes: 5,
-        },
+        alertRules: [],
       },
     };
 

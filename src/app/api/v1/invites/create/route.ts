@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import admin from "@/lib/firebaseAdmin";
 import { getAuth } from "firebase-admin/auth";
 import { sendInviteEmail } from "@/lib/emails/invite";
+import { countTeamMembers, getSubscriptionLimits, isWithinLimit } from "@/lib/subscription";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +52,28 @@ export async function POST(request: NextRequest) {
     if (!projectDoc.exists) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
-    const project = projectDoc.data();
+    const project = projectDoc.data()!;
+
+    // Check subscription limits
+    const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+    const currentMembers = await countTeamMembers(projectId);
+    
+    // Check if we can add more members
+    if (!isWithinLimit(currentMembers, limits.teamMembers)) {
+      return NextResponse.json(
+        { 
+          error: "Team member limit reached",
+          message: `Your Basic plan allows ${limits.teamMembers} total members. You currently have ${currentMembers} members.`,
+          suggestion: "Upgrade to Pro for up to 11 team members, or remove existing members to invite new ones.",
+          details: {
+            current: currentMembers,
+            limit: limits.teamMembers,
+            tier: project.subscriptionTier || "basic"
+          }
+        },
+        { status: 403 }
+      );
+    }
 
     // Get inviter details
     const userDoc = await adminDb.collection("users").doc(userId).get();
@@ -103,6 +125,30 @@ export async function POST(request: NextRequest) {
           alreadyMembers,
         },
         { status: 400 },
+      );
+    }
+
+    // Check if adding these invites would exceed the limit
+    const potentialTotalMembers = currentMembers + emailsToInvite.length;
+    if (!isWithinLimit(potentialTotalMembers - 1, limits.teamMembers)) {
+      const slotsAvailable = Math.max(0, limits.teamMembers - currentMembers);
+      const tierName = project.subscriptionTier === "pro" ? "Pro" : "Basic";
+      return NextResponse.json(
+        { 
+          error: "Cannot send all invites",
+          message: `You're trying to invite ${emailsToInvite.length} member${emailsToInvite.length > 1 ? 's' : ''}, but you only have ${slotsAvailable} slot${slotsAvailable !== 1 ? 's' : ''} available.`,
+          suggestion: slotsAvailable === 0 
+            ? `Remove existing members or upgrade to ${project.subscriptionTier === "basic" ? "Pro for 11 total members" : "Enterprise for unlimited members"}.`
+            : `You can invite up to ${slotsAvailable} more member${slotsAvailable !== 1 ? 's' : ''} on your ${tierName} plan.`,
+          details: {
+            current: currentMembers,
+            limit: limits.teamMembers,
+            slotsAvailable,
+            invitesRequested: emailsToInvite.length,
+            tier: project.subscriptionTier || "basic"
+          }
+        },
+        { status: 403 }
       );
     }
 

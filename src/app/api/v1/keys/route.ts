@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin, { adminDb } from "@/lib/firebaseAdmin";
 import { nanoid } from "nanoid";
+import { countActiveKeys, getSubscriptionLimits, isWithinLimit } from "@/lib/subscription";
 
 // GET /api/v1/keys - List all keys for the user's default project
 export async function GET(request: NextRequest) {
@@ -135,6 +136,31 @@ export async function POST(request: NextRequest) {
     const projectData = projectDoc.data()!;
     if (projectData.ownerId !== userId && !projectData.memberIds?.includes(userId)) {
       return NextResponse.json({ error: "Access denied to this project" }, { status: 403 });
+    }
+
+    // Check subscription limits
+    const limits = projectData.subscriptionLimits || getSubscriptionLimits(projectData.subscriptionTier || "basic");
+    const currentActiveKeys = await countActiveKeys(targetProjectId, type);
+    const keyLimit = type === "test" ? limits.activeTestKeys : limits.activeProdKeys;
+    
+    if (!isWithinLimit(currentActiveKeys, keyLimit)) {
+      const tierName = projectData.subscriptionTier === "pro" ? "Pro" : "Basic";
+      const upgradeTo = projectData.subscriptionTier === "basic" ? "Pro for 5" : "Enterprise for unlimited";
+      
+      return NextResponse.json(
+        { 
+          error: `${type === "test" ? "Test" : "Production"} key limit reached`,
+          message: `Your ${tierName} plan allows ${keyLimit} active ${type} key${keyLimit !== 1 ? 's' : ''}. You currently have ${currentActiveKeys} active.`,
+          suggestion: `Delete or deactivate an existing ${type} key, or upgrade to ${upgradeTo} ${type} keys.`,
+          details: {
+            currentActiveKeys,
+            limit: keyLimit,
+            keyType: type,
+            tier: projectData.subscriptionTier || "basic"
+          }
+        },
+        { status: 403 }
+      );
     }
 
     // Generate new key

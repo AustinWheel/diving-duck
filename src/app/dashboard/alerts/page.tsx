@@ -16,6 +16,7 @@ import {
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
 import { AlertRule, MessageAlertRule, NotificationType } from "@/types/database";
+import { useLimitError } from "@/hooks/useLimitError";
 
 interface AlertConfig {
   enabled: boolean;
@@ -25,6 +26,7 @@ interface AlertConfig {
 
 export default function AlertsPage() {
   const { currentProjectId, loading: projectsLoading } = useProject();
+  const { handleApiError, LimitErrorModal } = useLimitError();
   const [config, setConfig] = useState<AlertConfig>({
     enabled: false,
     phoneNumbers: [],
@@ -147,8 +149,13 @@ export default function AlertsPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save configuration");
+        const wasLimitError = await handleApiError(response);
+        if (!wasLimitError) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to save configuration");
+        }
+        setSaving(false); // Make sure to stop the saving state
+        return;
       }
 
       setOriginalConfig(config);
@@ -215,7 +222,11 @@ export default function AlertsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to send test alert");
+        const wasLimitError = await handleApiError(response);
+        if (!wasLimitError) {
+          throw new Error(data.error || "Failed to send test alert");
+        }
+        return;
       }
 
       const successCount = data.results.filter((r: any) => r.success).length;
@@ -812,6 +823,9 @@ export default function AlertsPage() {
           {toastMessage.message}
         </div>
       )}
+      
+      {/* Limit Error Modal */}
+      {LimitErrorModal}
     </Column>
   );
 }

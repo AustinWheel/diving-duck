@@ -1,6 +1,7 @@
 import admin from "@/lib/firebaseAdmin";
 const adminDb = admin.firestore();
 import { Project, LogEvent, Alert, AlertRule, LogType } from "@/types/database";
+import { canSendAlert, incrementDailyAlerts } from "@/lib/subscription";
 
 export async function checkAlertsForEvent(event: LogEvent) {
   try {
@@ -162,6 +163,18 @@ interface CreateAlertParams {
 }
 
 async function createAlert(params: CreateAlertParams) {
+  // Check if we can send more alerts today
+  const alertCheck = await canSendAlert(params.projectId, false);
+  if (!alertCheck.allowed) {
+    console.log("[ALERT LIMIT REACHED]", {
+      projectId: params.projectId,
+      reason: alertCheck.reason,
+      limit: alertCheck.limit,
+      current: alertCheck.current,
+    });
+    return;
+  }
+
   const alert: Omit<Alert, "id"> = {
     projectId: params.projectId,
     status: "pending",
@@ -277,6 +290,13 @@ async function sendSMS(alertId: string, phoneNumbers: string[], message: string)
         sentTo: successfulNumbers,
         error: errors.length > 0 ? `Partial failure: ${errors.join(", ")}` : null,
       });
+    
+    // Increment daily alert counter
+    const alertDoc = await adminDb.collection("alerts").doc(alertId).get();
+    const alertData = alertDoc.data();
+    if (alertData?.projectId) {
+      await incrementDailyAlerts(alertData.projectId);
+    }
   } else {
     await adminDb
       .collection("alerts")

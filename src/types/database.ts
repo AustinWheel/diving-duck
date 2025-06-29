@@ -6,6 +6,30 @@ export type AlertStatus = "pending" | "sent" | "failed" | "acknowledged";
 export type MemberRole = "owner" | "admin" | "member";
 export type InviteStatus = "pending" | "accepted" | "expired";
 export type NotificationType = "text" | "call";
+export type SubscriptionTier = "basic" | "pro" | "enterprise";
+
+// Subscription limits for each tier
+export interface SubscriptionLimits {
+  teamMembers: number; // Max total team members (including owner)
+  dailyAlerts: number; // Max alerts per day
+  testAlerts: number; // Total test alerts allowed
+  dailyEvents: number; // Max events per day
+  phoneNumbers: number; // Max phone numbers for alerts
+  alertRules: number; // Max alert rules
+  activeTestKeys: number; // Max active test keys
+  activeProdKeys: number; // Max active production keys
+  eventBucketMinutes: number; // Time bucket duration for event storage
+}
+
+// Usage tracking for subscription limits
+export interface ProjectUsage {
+  dailyEvents: number; // Events sent today
+  dailyEventsResetAt: Date; // When to reset daily counter
+  dailyAlerts: number; // Alerts sent today
+  dailyAlertsResetAt: Date; // When to reset daily counter
+  totalTestAlerts: number; // Total test alerts sent all-time
+  lastUpdated: Date; // Last time usage was updated
+}
 
 // Alert configuration types
 export interface GlobalAlertLimit {
@@ -51,6 +75,11 @@ export interface Project {
   createdAt: Date;
   updatedAt: Date;
 
+  // Subscription
+  subscriptionTier: SubscriptionTier; // Current subscription tier
+  subscriptionLimits: SubscriptionLimits; // Cached limits for quick access
+  usage?: ProjectUsage; // Usage tracking
+
   // Alert configuration
   alertConfig?: {
     enabled: boolean;
@@ -89,6 +118,17 @@ export interface LogEvent {
   meta?: Record<string, any>;
   ip?: string; // IP address of the request
   userAgent?: string;
+}
+
+// Bucketed events document in 'bucketedEvents' collection
+export interface BucketedEvents {
+  id: string; // Format: projectId_YYYYMMDD_HHmm
+  projectId: string;
+  bucketStart: Date;
+  bucketEnd: Date;
+  events: Omit<LogEvent, 'id'>[]; // Events without individual IDs
+  eventCount: number;
+  lastUpdated: Date;
 }
 
 // Alert document in 'alerts' collection

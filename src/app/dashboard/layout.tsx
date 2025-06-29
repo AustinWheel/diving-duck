@@ -47,6 +47,7 @@ export default function DashboardLayout({
   } = useProject();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [loadingPath, setLoadingPath] = useState<string | null>(null);
 
   // Set sidebar open on desktop, closed on mobile
   useEffect(() => {
@@ -61,6 +62,13 @@ export default function DashboardLayout({
     window.addEventListener("resize", checkScreenSize);
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
+
+  // Clear loading path when navigation completes
+  useEffect(() => {
+    if (!isPending) {
+      setLoadingPath(null);
+    }
+  }, [isPending]);
 
   const handleSignOut = async () => {
     try {
@@ -326,6 +334,12 @@ export default function DashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => {
+                  setLoadingPath(item.href);
+                  startTransition(() => {
+                    // Navigation will happen automatically
+                  });
+                }}
                 style={{
                   textDecoration: "none",
                   display: "block",
@@ -345,7 +359,7 @@ export default function DashboardLayout({
                     borderRadius: "8px",
                     transition: "all 0.2s ease",
                     cursor: "pointer",
-                    opacity: isPending ? 0.6 : 1,
+                    opacity: isPending && loadingPath === item.href ? 0.6 : 1,
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
@@ -360,9 +374,18 @@ export default function DashboardLayout({
                     }
                   }}
                 >
-                  <Flex gap="16" vertical="center" fillWidth>
-                    <Icon name={item.icon as any} size="s" />
-                    {sidebarOpen && <Text>{item.label}</Text>}
+                  <Flex gap="16" vertical="center" fillWidth horizontal="space-between">
+                    <Flex gap="16" vertical="center">
+                      {isPending && loadingPath === item.href && !sidebarOpen ? (
+                        <Spinner size="m" />
+                      ) : (
+                        <Icon name={item.icon as any} size="s" />
+                      )}
+                      {sidebarOpen && <Text>{item.label}</Text>}
+                    </Flex>
+                    {isPending && loadingPath === item.href && sidebarOpen && (
+                      <Spinner size="m" />
+                    )}
                   </Flex>
                 </div>
               </Link>

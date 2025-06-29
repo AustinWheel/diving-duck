@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin from "@/lib/firebaseAdmin";
 import { User, Project } from "@/types/database";
+import { canSendAlert, incrementTestAlerts } from "@/lib/subscription";
 
 const adminDb = admin.firestore();
 
@@ -79,6 +80,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check alert limits for test alerts
+    const alertCheck = await canSendAlert(projectId, true);
+    if (!alertCheck.allowed) {
+      const isTestLimitReached = alertCheck.reason?.includes("test alert");
+      const tierName = projectData.subscriptionTier === "pro" ? "Pro" : "Basic";
+      
+      let message, suggestion;
+      if (isTestLimitReached) {
+        message = `You've used all ${alertCheck.limit} test alerts on your ${tierName} plan.`;
+        suggestion = "Upgrade to Pro for unlimited test alerts, or use your alerts for real monitoring.";
+      } else {
+        const resetTime = new Date();
+        resetTime.setUTCDate(resetTime.getUTCDate() + 1);
+        resetTime.setUTCHours(0, 0, 0, 0);
+        const hoursUntilReset = Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60 * 60));
+        
+        message = `You've reached your daily limit of ${alertCheck.limit} alert${alertCheck.limit !== 1 ? 's' : ''}. You've sent ${alertCheck.current} today.`;
+        suggestion = `Upgrade to Pro for 100 daily alerts, or wait ${hoursUntilReset} hour${hoursUntilReset !== 1 ? 's' : ''} for the reset.`;
+      }
+      
+      return NextResponse.json(
+        { 
+          error: isTestLimitReached ? "Test alert limit reached" : "Daily alert limit reached",
+          message,
+          suggestion,
+          details: {
+            limit: alertCheck.limit,
+            current: alertCheck.current,
+            tier: projectData.subscriptionTier || "basic",
+            type: isTestLimitReached ? "test_alerts" : "daily_alerts"
+          }
+        },
+        { status: 429 }
+      );
+    }
+
     // Send test SMS
     const textbeltKey = process.env.TEXTBELT_API_KEY;
     if (!textbeltKey) {
@@ -138,6 +175,11 @@ export async function POST(request: NextRequest) {
             .join(", ")}`
         : null,
     });
+
+    // Increment test alert counter if any SMS was sent successfully
+    if (results.some((r) => r.success)) {
+      await incrementTestAlerts(projectId);
+    }
 
     return NextResponse.json({
       success: true,

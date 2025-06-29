@@ -6,6 +6,7 @@ import { Column, Heading, Text, Button, Flex, Icon, Spinner, Input } from "@once
 import { getAuth } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
 import { FiCopy, FiRefreshCw, FiTrash2, FiEye, FiEyeOff } from "react-icons/fi";
+import { useLimitError } from "@/hooks/useLimitError";
 
 interface ApiKey {
   id: string;
@@ -20,6 +21,7 @@ interface ApiKey {
 
 export default function APIKeysPage() {
   const { currentProjectId, loading: projectsLoading } = useProject();
+  const { handleApiError, LimitErrorModal } = useLimitError();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -125,7 +127,12 @@ export default function APIKeysPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create key");
+        const wasLimitError = await handleApiError(response);
+        if (!wasLimitError) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to create key");
+        }
+        return;
       }
 
       const data = await response.json();
@@ -617,6 +624,9 @@ export default function APIKeysPage() {
           {toastMessage.message}
         </div>
       )}
+      
+      {/* Limit Error Modal */}
+      {LimitErrorModal}
     </Column>
   );
 }

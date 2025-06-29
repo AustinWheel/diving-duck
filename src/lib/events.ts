@@ -111,7 +111,6 @@ export class EventsService {
     endTime: Date,
     filters?: { messages?: string[]; logTypes?: LogType[] },
   ): Promise<LogEvent[]> {
-    console.log(`[queryEventsInChunks] Starting chunked query for project ${projectId}`);
     const allEvents: LogEvent[] = [];
     const chunkSize = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
@@ -137,7 +136,6 @@ export class EventsService {
       currentStart = new Date(currentEnd.getTime() + 1);
     }
 
-    console.log(`[queryEventsInChunks] Total events from all ${chunkCount} chunks: ${allEvents.length}`);
     return allEvents;
   }
 
@@ -147,7 +145,6 @@ export class EventsService {
     startTime: Date,
     endTime: Date,
   ): Record<string, Record<LogType, number>> {
-    console.log(`[aggregateEventsByStepSize] Aggregating ${events.length} events with step size ${stepSizeMinutes} minutes`);
     const stepSizeMs = stepSizeMinutes * 60 * 1000;
     const aggregated: Record<string, Record<LogType, number>> = {};
 
@@ -170,9 +167,6 @@ export class EventsService {
       currentTime = new Date(currentTime.getTime() + stepSizeMs);
       bucketCount++;
     }
-    console.log(`[aggregateEventsByStepSize] Created ${bucketCount} time buckets`);
-    console.log(`[aggregateEventsByStepSize] First bucket: ${alignedStartTime.toISOString()}`);
-    console.log(`[aggregateEventsByStepSize] Last bucket: ${new Date(currentTime.getTime() - stepSizeMs).toISOString()}`);
 
     // Count events by type
     const typeCounts: Record<LogType, number> = {
@@ -191,11 +185,6 @@ export class EventsService {
       const eventTime = new Date(event.timestamp);
       const bucketStart = new Date(Math.floor(eventTime.getTime() / stepSizeMs) * stepSizeMs);
 
-      // Debug first few events
-      if (index < 3) {
-        console.log(`[aggregateEventsByStepSize] Event ${index}: time=${eventTime.toISOString()}, bucketStart=${bucketStart.toISOString()}, type=${event.type}`);
-      }
-
       // Check if the bucket exists in our aggregated object
       const bucketKey = bucketStart.toISOString();
       if (aggregated[bucketKey]) {
@@ -204,18 +193,8 @@ export class EventsService {
         aggregatedCount++;
       } else {
         skippedCount++;
-        if (skippedCount <= 3) {
-          console.log(`[aggregateEventsByStepSize] Event outside bucket range: ${eventTime.toISOString()} (bucket: ${bucketStart.toISOString()})`);
-        }
       }
     });
-
-    if (skippedCount > 0) {
-      console.log(`[aggregateEventsByStepSize] Skipped ${skippedCount} events outside time range`);
-    }
-
-    console.log(`[aggregateEventsByStepSize] Aggregated ${aggregatedCount} events into buckets`);
-    console.log(`[aggregateEventsByStepSize] Event type distribution:`, typeCounts);
 
     return aggregated;
   }

@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
 import { format } from "date-fns";
+import { useLimitError } from "@/hooks/useLimitError";
 
 interface TeamMember {
   id: string;
@@ -38,6 +39,7 @@ interface Invite {
 
 export default function TeamPage() {
   const { currentProjectId, loading: projectsLoading } = useProject();
+  const { handleApiError, LimitErrorModal } = useLimitError();
   const queryClient = useQueryClient();
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
@@ -142,12 +144,16 @@ export default function TeamPage() {
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to send invites");
+        const wasLimitError = await handleApiError(response);
+        if (!wasLimitError) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to send invites");
+        }
+        throw new Error("Limit reached"); // This will prevent onSuccess from running
       }
 
+      const data = await response.json();
       return data;
     },
     onSuccess: (data) => {
@@ -480,18 +486,45 @@ export default function TeamPage() {
                       </Flex>
                     </td>
                     <td style={{ padding: "12px" }}>
-                      <Badge
-                        variant={
-                          member.role === "owner"
-                            ? "danger"
-                            : member.role === "admin"
-                              ? "warning"
-                              : "neutral"
-                        }
-                        size="s"
-                      >
-                        {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                      </Badge>
+                      {isMobile ? (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            textTransform: "uppercase",
+                            backgroundColor:
+                              member.role === "owner"
+                                ? "rgba(239, 68, 68, 0.1)"
+                                : member.role === "admin"
+                                  ? "rgba(245, 158, 11, 0.1)"
+                                  : "rgba(156, 163, 175, 0.1)",
+                            color:
+                              member.role === "owner"
+                                ? "#ef4444"
+                                : member.role === "admin"
+                                  ? "#f59e0b"
+                                  : "#9ca3af",
+                          }}
+                        >
+                          {member.role}
+                        </span>
+                      ) : (
+                        <Badge
+                          variant={
+                            member.role === "owner"
+                              ? "danger"
+                              : member.role === "admin"
+                                ? "warning"
+                                : "neutral"
+                          }
+                          size="s"
+                        >
+                          {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                        </Badge>
+                      )}
                     </td>
                     <td style={{ padding: "12px" }}>
                       <Text variant="body-default-m" onBackground="neutral-weak">
@@ -641,6 +674,9 @@ export default function TeamPage() {
           </div>
         </Column>
       )}
+      
+      {/* Limit Error Modal */}
+      {LimitErrorModal}
     </Column>
   );
 }

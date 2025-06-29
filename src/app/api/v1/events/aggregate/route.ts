@@ -162,8 +162,6 @@ export async function POST(request: NextRequest) {
 
     // Aggregate data for the chart
     const chartData = EventsService.aggregateEventsByStepSize(events, stepSize, start, end);
-    console.log(`[Aggregate API] Generated ${Object.keys(chartData).length} time buckets`);
-
     // Transform chart data for recharts format
     const timeSeriesData = Object.entries(chartData).map(([timestamp, counts]) => {
       const bucketAlerts = alerts.filter((alert) => {
@@ -180,12 +178,6 @@ export async function POST(request: NextRequest) {
         alertDetails: bucketAlerts, // Include alert details for the label
       };
     });
-
-    // Log sample of time series data
-    if (timeSeriesData.length > 0) {
-      console.log(`[Aggregate API] Sample time series data (first bucket):`, timeSeriesData[0]);
-      console.log(`[Aggregate API] Sample time series data (last bucket):`, timeSeriesData[timeSeriesData.length - 1]);
-    }
 
     // Aggregate by message
     const messageAggregated = EventsService.aggregateEventsByMessage(events);

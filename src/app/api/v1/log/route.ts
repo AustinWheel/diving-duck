@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import admin from "@/lib/firebaseAdmin";
 import { LogEvent, ApiKey, LogType } from "@/types/database";
 import { checkAlertsForEvent } from "@/lib/alerts/alert-checker";
+import { canSendEvent, incrementDailyEvents } from "@/lib/subscription";
 
 interface LogRequestBody {
   type?: LogType; // Optional, defaults to 'text'
@@ -88,6 +89,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid log type" }, { status: 400 });
     }
 
+    // Check event limits
+    const eventCheck = await canSendEvent(apiKey.projectId);
+    if (!eventCheck.allowed) {
+      const resetTime = new Date();
+      resetTime.setUTCDate(resetTime.getUTCDate() + 1);
+      resetTime.setUTCHours(0, 0, 0, 0);
+      const hoursUntilReset = Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60 * 60));
+      
+      return NextResponse.json(
+        { 
+          error: "Daily event limit exceeded",
+          message: `You've reached your daily limit of ${eventCheck.limit} events. You've sent ${eventCheck.current} events today.`,
+          suggestion: "Upgrade to Pro for 50,000 events per day, or wait for the daily reset.",
+          details: {
+            limit: eventCheck.limit,
+            current: eventCheck.current,
+            resetAt: resetTime.toISOString(),
+            hoursUntilReset,
+            tier: "basic" // We can get this from project if needed
+          }
+        },
+        { status: 429 }
+      );
+    }
+
     // Create event document
     const eventData: Omit<LogEvent, "id"> = {
       projectId: apiKey.projectId,
@@ -109,10 +135,13 @@ export async function POST(request: NextRequest) {
       timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp),
     });
 
-    // Update last used timestamp for the API key
-    await keyDoc.ref.update({
-      lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    // Update last used timestamp for the API key and increment event counter
+    await Promise.all([
+      keyDoc.ref.update({
+        lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
+      incrementDailyEvents(apiKey.projectId)
+    ]);
 
     // Log to console for debugging
     console.log("[LOG API] Event stored:", {

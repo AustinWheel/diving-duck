@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
 
     // Get team member count (memberIds includes owner)
     const teamMemberCount = projectData.memberIds?.length || 0;
-    console.log(`Project ${projectId} has ${teamMemberCount} members total`);
 
     // Count active API keys
     const allKeysSnapshot = await adminDb
@@ -62,10 +61,6 @@ export async function GET(request: NextRequest) {
       .where("isActive", "==", true)
       .get();
 
-    console.log(
-      `Total keys for project ${projectId}: ${allKeysSnapshot.size}, Active keys: ${keysSnapshot.size}`,
-    );
-
     // Count events in last 24 hours
     const twentyFourHoursAgo = admin.firestore.Timestamp.fromDate(
       new Date(Date.now() - 24 * 60 * 60 * 1000),
@@ -76,16 +71,12 @@ export async function GET(request: NextRequest) {
       .where("timestamp", ">=", twentyFourHoursAgo)
       .get();
 
-    console.log(`Events found for project ${projectId} in last 24h:`, eventsSnapshot.size);
-
     // Count active alerts
     const alertsSnapshot = await adminDb
       .collection("alerts")
       .where("projectId", "==", projectId)
       .where("status", "==", "pending")
       .get();
-
-    console.log(`Pending alerts found for project ${projectId}:`, alertsSnapshot.size);
 
     return NextResponse.json({
       stats: {
