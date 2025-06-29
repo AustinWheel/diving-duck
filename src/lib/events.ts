@@ -23,8 +23,8 @@ export class EventsService {
   static async queryEvents(options: EventsQueryOptions): Promise<LogEvent[]> {
     const { projectId, startTime, endTime, filters, limit = 1000 } = options;
 
-    console.log(`[EventsService.queryEvents] Querying events for project ${projectId}`);
-    console.log(`[EventsService.queryEvents] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
+    console.log(`[Firebase READ - Events] Querying events for project ${projectId}`);
+    console.log(`[Firebase READ - Events] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
     let query = adminDb
       .collection("events")
@@ -40,7 +40,7 @@ export class EventsService {
     }
 
     const snapshot = await query.get();
-    console.log(`[EventsService.queryEvents] Found ${snapshot.size} events in Firestore`);
+    console.log(`[Firebase READ - Events] Found ${snapshot.size} events from Firestore`);
 
     const events = snapshot.docs.map((doc) => {
       const data = doc.data();
@@ -82,6 +82,9 @@ export class EventsService {
   static async queryAlerts(options: AlertsQueryOptions): Promise<Alert[]> {
     const { projectId, startTime, endTime } = options;
 
+    console.log(`[Firebase READ - Alerts] Querying alerts for project ${projectId}`);
+    console.log(`[Firebase READ - Alerts] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
+
     const query = adminDb
       .collection("alerts")
       .where("projectId", "==", projectId)
@@ -90,6 +93,7 @@ export class EventsService {
       .orderBy("createdAt", "desc");
 
     const snapshot = await query.get();
+    console.log(`[Firebase READ - Alerts] Found ${snapshot.size} alerts from Firestore`);
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -118,7 +122,7 @@ export class EventsService {
       const currentEnd = new Date(Math.min(currentStart.getTime() + chunkSize, endTime.getTime()));
       chunkCount++;
 
-      console.log(`[queryEventsInChunks] Chunk ${chunkCount}: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
+      console.log(`[Firebase READ - Events] Chunk ${chunkCount}: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
 
       const chunkEvents = await this.queryEvents({
         projectId,
@@ -128,7 +132,7 @@ export class EventsService {
         limit: 5000, // Higher limit per chunk
       });
 
-      console.log(`[queryEventsInChunks] Chunk ${chunkCount} returned ${chunkEvents.length} events`);
+      console.log(`[Firebase READ - Events] Chunk ${chunkCount} returned ${chunkEvents.length} events`);
       allEvents.push(...chunkEvents);
       currentStart = new Date(currentEnd.getTime() + 1);
     }

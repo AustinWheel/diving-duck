@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin from "@/lib/firebaseAdmin";
 import { EventsService } from "@/lib/events";
-import { Project, LogType } from "@/types/database";
+import { Project, LogType, LogEvent, Alert } from "@/types/database";
 import { adminDb } from "@/lib/firebaseAdmin";
 
 interface AggregateRequest {
@@ -12,6 +12,38 @@ interface AggregateRequest {
     messages?: string[];
     logTypes?: LogType[];
   };
+}
+
+// In-memory cache for events and alerts
+interface CacheEntry {
+  events: LogEvent[];
+  alerts: Alert[];
+  timestamp: number;
+}
+
+const cache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Generate cache key from request parameters
+function getCacheKey(projectId: string, startTime: string, endTime: string, filters?: any): string {
+  const filterKey = filters ? JSON.stringify(filters) : 'no-filters';
+  return `${projectId}:${startTime}:${endTime}:${filterKey}`;
+}
+
+// Check if cache entry is still valid
+function isCacheValid(entry: CacheEntry): boolean {
+  return Date.now() - entry.timestamp < CACHE_TTL;
+}
+
+// Clean up expired cache entries
+function cleanupCache() {
+  const now = Date.now();
+  for (const [key, entry] of cache.entries()) {
+    if (now - entry.timestamp >= CACHE_TTL) {
+      cache.delete(key);
+      console.log(`[Cache] Removed expired entry: ${key}`);
+    }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -81,18 +113,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid step size" }, { status: 400 });
     }
 
-    // Query events and alerts in parallel
-    console.log(`[Aggregate API] Starting queries for project ${projectId}`);
-    console.log(`[Aggregate API] Time range: ${start.toISOString()} to ${end.toISOString()}`);
-    console.log(`[Aggregate API] Step size: ${stepSize} minutes`);
-    console.log(`[Aggregate API] Filters:`, filters);
+    // Clean up expired cache entries periodically
+    cleanupCache();
 
-    const [events, alerts] = await Promise.all([
-      EventsService.queryEventsInChunks(projectId, start, end, filters),
-      EventsService.queryAlerts({ projectId, startTime: start, endTime: end }),
-    ]);
+    // Check cache first
+    const cacheKey = getCacheKey(projectId, startTime, endTime, filters);
+    const cachedEntry = cache.get(cacheKey);
+    
+    let events: LogEvent[];
+    let alerts: Alert[];
 
-    console.log(`[Aggregate API] Retrieved ${events.length} events and ${alerts.length} alerts`);
+    if (cachedEntry && isCacheValid(cachedEntry)) {
+      // Use cached data
+      console.log(`[Cache HIT] Using cached data for key: ${cacheKey}`);
+      console.log(`[Cache HIT] Cached ${cachedEntry.events.length} events and ${cachedEntry.alerts.length} alerts`);
+      console.log(`[Cache HIT] Cache age: ${Math.round((Date.now() - cachedEntry.timestamp) / 1000)}s`);
+      events = cachedEntry.events;
+      alerts = cachedEntry.alerts;
+    } else {
+      // Query events and alerts in parallel
+      console.log(`[Cache MISS] No valid cache for key: ${cacheKey}`);
+      if (cachedEntry) {
+        console.log(`[Cache MISS] Cache expired, age: ${Math.round((Date.now() - cachedEntry.timestamp) / 1000)}s`);
+      }
+      console.log(`[Firebase READ] Starting queries for project ${projectId}`);
+      console.log(`[Firebase READ] Time range: ${start.toISOString()} to ${end.toISOString()}`);
+      console.log(`[Firebase READ] Step size: ${stepSize} minutes`);
+      console.log(`[Firebase READ] Filters:`, filters);
+
+      const startTime = Date.now();
+      [events, alerts] = await Promise.all([
+        EventsService.queryEventsInChunks(projectId, start, end, filters),
+        EventsService.queryAlerts({ projectId, startTime: start, endTime: end }),
+      ]);
+      const queryTime = Date.now() - startTime;
+
+      console.log(`[Firebase READ] Completed in ${queryTime}ms`);
+      console.log(`[Firebase READ] Retrieved ${events.length} events and ${alerts.length} alerts`);
+      
+      // Store in cache
+      cache.set(cacheKey, {
+        events,
+        alerts,
+        timestamp: Date.now(),
+      });
+      console.log(`[Cache WRITE] Stored data for key: ${cacheKey}`);
+    }
 
     // Aggregate data for the chart
     const chartData = EventsService.aggregateEventsByStepSize(events, stepSize, start, end);

@@ -275,7 +275,7 @@ export default function EventLogsPage() {
     }
   };
 
-  const logTypes: LogType[] = ["text", "call", "callText", "log", "warn", "error"];
+  const logTypes: LogType[] = ["text", "log", "warn", "error"];
 
   if (loading || projectsLoading) {
     return (
@@ -963,8 +963,6 @@ export default function EventLogsPage() {
 import 'console-warden';
 
 console.text('User account not found');
-console.call('Payment failed', { amount: 99.99 });
-console.callText('Critical function hit retry limit');
 
 // Standard methods also captured
 console.log('Debug info');

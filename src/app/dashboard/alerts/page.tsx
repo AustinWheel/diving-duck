@@ -585,19 +585,11 @@ export default function AlertsPage() {
                             onClick={() =>
                               updateAlertRule(ruleIndex, { ...rule, notificationType: "text" })
                             }
-                            variant={rule.notificationType === "text" ? "primary" : "secondary"}
+                            variant="primary"
                             size="s"
+                            disabled
                           >
                             Text Message
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              updateAlertRule(ruleIndex, { ...rule, notificationType: "call" })
-                            }
-                            variant={rule.notificationType === "call" ? "primary" : "secondary"}
-                            size="s"
-                          >
-                            Phone Call
                           </Button>
                         </Flex>
                       </Column>

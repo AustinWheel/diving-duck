@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Flex, Column, Heading, Text, Icon, Spinner, Button } from "@once-ui-system/core";
+import { Flex, Column, Heading, Text, Icon, Spinner, Button, Tag } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProject } from "@/contexts/ProjectContext";
 import { db } from "@/lib/firebaseClient";
@@ -12,6 +12,7 @@ import { getAuth } from "firebase/auth";
 import EventActivityChart from "@/components/EventActivityChart";
 import MessageAggregatedEvents from "@/components/MessageAggregatedEvents";
 import TimeRangeSelector from "@/components/TimeRangeSelector";
+import { LogType } from "@/types/database";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -21,11 +22,13 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState(24); // hours
   const [stepSize, setStepSize] = useState(60); // minutes
   const [messageFilter, setMessageFilter] = useState<string | null>(null);
+  const [logTypeFilter, setLogTypeFilter] = useState<LogType[]>([]);
 
   // Fetch dashboard stats using TanStack Query
   const {
     data: stats = { events: 0, alerts: 0, apiKeys: 0, teamMembers: 0 },
     isLoading: loadingStats,
+    refetch: refetchStats,
   } = useQuery({
     queryKey: ["dashboard-stats", currentProjectId],
     queryFn: async () => {
@@ -50,7 +53,8 @@ export default function Dashboard() {
       return data.stats;
     },
     enabled: !!currentProjectId && !checkingOnboarding,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic refetching
   });
 
   // Fetch aggregated event data
@@ -59,7 +63,7 @@ export default function Dashboard() {
     isLoading: loadingEvents,
     refetch: refetchEvents,
   } = useQuery({
-    queryKey: ["event-aggregate", currentProjectId, timeRange, stepSize, messageFilter],
+    queryKey: ["event-aggregate", currentProjectId, timeRange, messageFilter, logTypeFilter], // stepSize removed from key
     queryFn: async () => {
       if (!currentProjectId) throw new Error("No project selected");
 
@@ -67,7 +71,10 @@ export default function Dashboard() {
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw new Error("No auth token available");
 
-      const endTime = new Date();
+      // Round timestamps to nearest 5 minutes to ensure consistent cache keys
+      const now = new Date();
+      const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+      const endTime = new Date(Math.floor(now.getTime() / fiveMinutes) * fiveMinutes); // Round to 5 minutes
       const startTime = new Date(endTime.getTime() - timeRange * 60 * 60 * 1000);
 
       const body: any = {
@@ -76,10 +83,14 @@ export default function Dashboard() {
         stepSize,
       };
 
-      if (messageFilter) {
-        body.filters = {
-          messages: [messageFilter],
-        };
+      if (messageFilter || logTypeFilter.length > 0) {
+        body.filters = {};
+        if (messageFilter) {
+          body.filters.messages = [messageFilter];
+        }
+        if (logTypeFilter.length > 0) {
+          body.filters.logTypes = logTypeFilter;
+        }
       }
 
       const response = await fetch(`/api/v1/events/aggregate?projectId=${currentProjectId}`, {
@@ -109,7 +120,8 @@ export default function Dashboard() {
       return data;
     },
     enabled: !!currentProjectId && !checkingOnboarding,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic refetching
   });
 
   useEffect(() => {
@@ -252,7 +264,73 @@ export default function Dashboard() {
         <Text variant="heading-strong-m" onBackground="neutral-strong">
           Event Analytics
         </Text>
-        <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+        <Flex gap="16" vertical="center">
+          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+          <Button
+            onClick={() => {
+              refetchEvents();
+              refetchStats();
+            }}
+            variant="secondary"
+            size="m"
+            disabled={loadingEvents || loadingStats}
+          >
+            <Icon name="refresh" size="s" style={{ marginRight: "8px" }} />
+            Refresh
+          </Button>
+        </Flex>
+      </Flex>
+
+      {/* Log Type Filters */}
+      <Flex gap="8" wrap vertical="center">
+        {(["error", "warn", "log", "text"] as LogType[]).map((logType) => {
+          const isActive = logTypeFilter.includes(logType);
+          const color = {
+            error: "#ef4444",
+            warn: "#f59e0b",
+            callText: "#3b82f6",
+            call: "#6366f1",
+            log: "#10b981",
+            text: "#6b7280",
+          }[logType];
+
+          return (
+            <Button
+              key={logType}
+              onClick={() => {
+                if (isActive) {
+                  setLogTypeFilter(logTypeFilter.filter((t) => t !== logType));
+                } else {
+                  setLogTypeFilter([...logTypeFilter, logType]);
+                }
+              }}
+              variant="tertiary"
+              size="s"
+              style={{
+                backgroundColor: isActive ? `${color}20` : "rgba(255, 255, 255, 0.05)",
+                border: `1px solid ${isActive ? color : "rgba(255, 255, 255, 0.1)"}`,
+                color: isActive ? color : "var(--neutral-on-background-weak)",
+                fontWeight: isActive ? 600 : 400,
+                textTransform: "uppercase",
+                fontSize: "11px",
+                padding: "4px 12px",
+                transition: "all 0.2s ease",
+              }}
+            >
+              {logType}
+            </Button>
+          );
+        })}
+        {logTypeFilter.length > 0 && (
+          <Button
+            onClick={() => setLogTypeFilter([])}
+            variant="ghost"
+            size="s"
+            style={{ fontSize: "11px" }}
+          >
+            Clear filters
+          </Button>
+        )}
       </Flex>
 
       {/* Event Activity Chart */}

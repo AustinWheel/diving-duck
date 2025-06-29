@@ -2,14 +2,12 @@
 
 const http = require('http');
 
-// Distribution: log (0.5), warn (0.2), error (0.15), text (0.05), call (0.05), callText (0.05)
+// Distribution: log (0.5), warn (0.2), error (0.15), text (0.15)
 const EVENT_DISTRIBUTION = [
   { type: 'log', weight: 0.5 },
   { type: 'warn', weight: 0.2 },
   { type: 'error', weight: 0.15 },
-  { type: 'text', weight: 0.05 },
-  { type: 'call', weight: 0.05 },
-  { type: 'callText', weight: 0.05 }
+  { type: 'text', weight: 0.15 }
 ];
 
 // Sample messages for each log type
@@ -38,17 +36,9 @@ const MESSAGES = {
   text: [
     'Critical system alert: backup failed',
     'Security alert: multiple failed login attempts',
-    'Infrastructure alert: server CPU at 95%'
-  ],
-  call: [
-    'Payment processing initiated',
-    'User deletion requested',
-    'Bulk email job triggered'
-  ],
-  callText: [
+    'Infrastructure alert: server CPU at 95%',
     'URGENT: Production database unreachable',
-    'CRITICAL: Payment system offline',
-    'EMERGENCY: Security breach detected'
+    'CRITICAL: Payment system offline'
   ]
 };
 
