@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Column, Heading, Text, Button, Flex, Icon, Spinner, Input, Switch, NumberInput } from '@once-ui-system/core';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { useProject } from '@/contexts/ProjectContext';
-import { AlertRule, MessageAlertRule, NotificationType } from '@/types/database';
+import { useState, useEffect } from "react";
+import {
+  Column,
+  Heading,
+  Text,
+  Button,
+  Flex,
+  Icon,
+  Spinner,
+  Input,
+  Switch,
+  NumberInput,
+} from "@once-ui-system/core";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useProject } from "@/contexts/ProjectContext";
+import { AlertRule, MessageAlertRule, NotificationType } from "@/types/database";
 
 interface AlertConfig {
   enabled: boolean;
@@ -17,13 +28,16 @@ export default function AlertsPage() {
   const [config, setConfig] = useState<AlertConfig>({
     enabled: false,
     phoneNumbers: [],
-    alertRules: []
+    alertRules: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [projectName, setProjectName] = useState('');
-  const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [newPhoneNumber, setNewPhoneNumber] = useState('');
+  const [projectName, setProjectName] = useState("");
+  const [toastMessage, setToastMessage] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+  const [newPhoneNumber, setNewPhoneNumber] = useState("");
   const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalConfig, setOriginalConfig] = useState<AlertConfig | null>(null);
@@ -64,31 +78,31 @@ export default function AlertsPage() {
       const auth = getAuth();
 
       if (!auth.currentUser) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
-        console.log('No auth token available');
+        console.log("No auth token available");
         setLoading(false);
         return;
       }
 
       const response = await fetch(`/api/v1/alerts/config?projectId=${currentProjectId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch alert configuration');
+        throw new Error("Failed to fetch alert configuration");
       }
 
       const data = await response.json();
       const alertConfig = data.alertConfig || {
         enabled: false,
         phoneNumbers: [],
-        alertRules: []
+        alertRules: [],
       };
 
       // Ensure all rules have proper structure
@@ -98,10 +112,10 @@ export default function AlertsPage() {
           globalLimit: {
             enabled: rule.globalLimit?.enabled ?? false,
             windowMinutes: rule.globalLimit?.windowMinutes ?? 60,
-            maxAlerts: rule.globalLimit?.maxAlerts ?? 10
+            maxAlerts: rule.globalLimit?.maxAlerts ?? 10,
           },
           messageRules: rule.messageRules || [],
-          notificationType: rule.notificationType || 'text'
+          notificationType: rule.notificationType || "text",
         }));
       }
 
@@ -109,8 +123,8 @@ export default function AlertsPage() {
       setOriginalConfig(alertConfig);
       setProjectName(data.projectName);
     } catch (error) {
-      console.error('Error loading alert config:', error);
-      setToastMessage({ message: 'Failed to load alert configuration', type: 'error' });
+      console.error("Error loading alert config:", error);
+      setToastMessage({ message: "Failed to load alert configuration", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -124,27 +138,27 @@ export default function AlertsPage() {
       if (!token) return;
 
       const response = await fetch(`/api/v1/alerts/config?projectId=${currentProjectId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ alertConfig: config }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to save configuration');
+        throw new Error(error.error || "Failed to save configuration");
       }
 
       setOriginalConfig(config);
       setHasChanges(false);
-      setToastMessage({ message: 'Alert configuration saved successfully', type: 'success' });
+      setToastMessage({ message: "Alert configuration saved successfully", type: "success" });
     } catch (error) {
-      console.error('Error saving config:', error);
+      console.error("Error saving config:", error);
       setToastMessage({
-        message: error instanceof Error ? error.message : 'Failed to save configuration',
-        type: 'error'
+        message: error instanceof Error ? error.message : "Failed to save configuration",
+        type: "error",
       });
     } finally {
       setSaving(false);
@@ -153,32 +167,32 @@ export default function AlertsPage() {
 
   const addPhoneNumber = () => {
     const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    const formattedNumber = newPhoneNumber.startsWith('+') ? newPhoneNumber : `+${newPhoneNumber}`;
+    const formattedNumber = newPhoneNumber.startsWith("+") ? newPhoneNumber : `+${newPhoneNumber}`;
 
     if (!phoneRegex.test(formattedNumber)) {
       setToastMessage({
-        message: 'Invalid phone number format. Use E.164 format (e.g., +1234567890)',
-        type: 'error'
+        message: "Invalid phone number format. Use E.164 format (e.g., +1234567890)",
+        type: "error",
       });
       return;
     }
 
     if (config.phoneNumbers?.includes(formattedNumber)) {
-      setToastMessage({ message: 'Phone number already exists', type: 'error' });
+      setToastMessage({ message: "Phone number already exists", type: "error" });
       return;
     }
 
     setConfig({
       ...config,
-      phoneNumbers: [...(config.phoneNumbers || []), formattedNumber]
+      phoneNumbers: [...(config.phoneNumbers || []), formattedNumber],
     });
-    setNewPhoneNumber('');
+    setNewPhoneNumber("");
   };
 
   const removePhoneNumber = (index: number) => {
     setConfig({
       ...config,
-      phoneNumbers: (config.phoneNumbers || []).filter((_, i) => i !== index)
+      phoneNumbers: (config.phoneNumbers || []).filter((_, i) => i !== index),
     });
   };
 
@@ -188,46 +202,46 @@ export default function AlertsPage() {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
-        throw new Error('No authentication token');
+        throw new Error("No authentication token");
       }
 
       const response = await fetch(`/api/v1/alerts/test?projectId=${currentProjectId}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send test alert');
+        throw new Error(data.error || "Failed to send test alert");
       }
 
       const successCount = data.results.filter((r: any) => r.success).length;
       const totalCount = data.results.length;
 
       if (successCount === totalCount) {
-        setToastMessage({ 
-          message: `Test alert sent successfully to ${successCount} number${successCount > 1 ? 's' : ''}`, 
-          type: 'success' 
+        setToastMessage({
+          message: `Test alert sent successfully to ${successCount} number${successCount > 1 ? "s" : ""}`,
+          type: "success",
         });
       } else if (successCount > 0) {
-        setToastMessage({ 
-          message: `Test alert sent to ${successCount} of ${totalCount} numbers`, 
-          type: 'error' 
+        setToastMessage({
+          message: `Test alert sent to ${successCount} of ${totalCount} numbers`,
+          type: "error",
         });
       } else {
-        setToastMessage({ 
-          message: 'Failed to send test alert to any numbers', 
-          type: 'error' 
+        setToastMessage({
+          message: "Failed to send test alert to any numbers",
+          type: "error",
         });
       }
     } catch (error) {
-      console.error('Error sending test alert:', error);
+      console.error("Error sending test alert:", error);
       setToastMessage({
-        message: error instanceof Error ? error.message : 'Failed to send test alert',
-        type: 'error'
+        message: error instanceof Error ? error.message : "Failed to send test alert",
+        type: "error",
       });
     } finally {
       setTestingSMS(false);
@@ -239,14 +253,14 @@ export default function AlertsPage() {
       globalLimit: {
         enabled: true,
         windowMinutes: 60,
-        maxAlerts: 10
+        maxAlerts: 10,
       },
       messageRules: [],
-      notificationType: 'text'
+      notificationType: "text",
     };
     setConfig({
       ...config,
-      alertRules: [...(config.alertRules || []), newRule]
+      alertRules: [...(config.alertRules || []), newRule],
     });
     setEditingRuleIndex((config.alertRules || []).length);
   };
@@ -256,14 +270,14 @@ export default function AlertsPage() {
     newRules[index] = rule;
     setConfig({
       ...config,
-      alertRules: newRules
+      alertRules: newRules,
     });
   };
 
   const removeAlertRule = (index: number) => {
     setConfig({
       ...config,
-      alertRules: (config.alertRules || []).filter((_, i) => i !== index)
+      alertRules: (config.alertRules || []).filter((_, i) => i !== index),
     });
     if (editingRuleIndex === index) {
       setEditingRuleIndex(null);
@@ -272,9 +286,9 @@ export default function AlertsPage() {
 
   const addMessageRule = (ruleIndex: number) => {
     const newMessageRule: MessageAlertRule = {
-      message: '',
+      message: "",
       windowMinutes: 30,
-      maxAlerts: 5
+      maxAlerts: 5,
     };
     const newRules = [...(config.alertRules || [])];
     if (!newRules[ruleIndex].messageRules) {
@@ -283,16 +297,20 @@ export default function AlertsPage() {
     newRules[ruleIndex].messageRules.push(newMessageRule);
     setConfig({
       ...config,
-      alertRules: newRules
+      alertRules: newRules,
     });
   };
 
-  const updateMessageRule = (ruleIndex: number, messageIndex: number, messageRule: MessageAlertRule) => {
+  const updateMessageRule = (
+    ruleIndex: number,
+    messageIndex: number,
+    messageRule: MessageAlertRule,
+  ) => {
     const newRules = [...(config.alertRules || [])];
     newRules[ruleIndex].messageRules[messageIndex] = messageRule;
     setConfig({
       ...config,
-      alertRules: newRules
+      alertRules: newRules,
     });
   };
 
@@ -301,7 +319,7 @@ export default function AlertsPage() {
     newRules[ruleIndex].messageRules.splice(messageIndex, 1);
     setConfig({
       ...config,
-      alertRules: newRules
+      alertRules: newRules,
     });
   };
 
@@ -314,12 +332,17 @@ export default function AlertsPage() {
   }
 
   return (
-    <Column fillWidth padding="16" gap="24" style={{ '@media (minWidth: 768px)': { padding: '32px', gap: '32px' } }}>
+    <Column
+      fillWidth
+      padding="16"
+      gap="24"
+      style={{ "@media (minWidth: 768px)": { padding: "32px", gap: "32px" } }}
+    >
       <Flex fillWidth horizontal="space-between" vertical="center" wrap gap="16">
-        <Column gap="8" style={{ flex: 1, minWidth: '200px' }}>
+        <Column gap="8" style={{ flex: 1, minWidth: "200px" }}>
           <Heading variant="display-strong-l">Alert Configuration</Heading>
           <Text variant="body-default-l" onBackground="neutral-weak">
-            Configure alerts for {projectName || 'your project'}
+            Configure alerts for {projectName || "your project"}
           </Text>
         </Column>
         <Flex gap="12">
@@ -338,12 +361,7 @@ export default function AlertsPage() {
               </Flex>
             </Button>
           )}
-          <Button
-            onClick={saveConfig}
-            variant="primary"
-            size="m"
-            disabled={saving || !hasChanges}
-          >
+          <Button onClick={saveConfig} variant="primary" size="m" disabled={saving || !hasChanges}>
             {saving ? (
               <Spinner size="s" />
             ) : (
@@ -372,7 +390,7 @@ export default function AlertsPage() {
               <Heading variant="heading-strong-m">Alert Status</Heading>
             </Flex>
             <Text variant="body-default-m" onBackground="neutral-weak">
-              {config.enabled ? 'Alerts are currently active' : 'Alerts are currently disabled'}
+              {config.enabled ? "Alerts are currently active" : "Alerts are currently disabled"}
             </Text>
           </Column>
           <Switch
@@ -391,12 +409,7 @@ export default function AlertsPage() {
             <Heading variant="heading-strong-m">Phone Numbers</Heading>
           </Flex>
           {config.phoneNumbers.length > 0 && config.enabled && (
-            <Button
-              onClick={sendTestAlert}
-              variant="secondary"
-              size="s"
-              disabled={testingSMS}
-            >
+            <Button onClick={sendTestAlert} variant="secondary" size="s" disabled={testingSMS}>
               {testingSMS ? (
                 <Spinner size="s" />
               ) : (
@@ -420,7 +433,7 @@ export default function AlertsPage() {
             size="m"
             style={{ flex: 1 }}
             onKeyPress={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === "Enter") {
                 addPhoneNumber();
               }
             }}
@@ -468,11 +481,7 @@ export default function AlertsPage() {
                 }}
               >
                 <Text variant="body-default-m">{phone}</Text>
-                <Button
-                  onClick={() => removePhoneNumber(index)}
-                  variant="ghost"
-                  size="s"
-                >
+                <Button onClick={() => removePhoneNumber(index)} variant="ghost" size="s">
                   <Icon name="trash" size="s" />
                 </Button>
               </Flex>
@@ -488,11 +497,7 @@ export default function AlertsPage() {
             <Icon name="message" size="m" />
             <Heading variant="heading-strong-m">Alert Rules</Heading>
           </Flex>
-          <Button
-            onClick={addAlertRule}
-            variant="secondary"
-            size="m"
-          >
+          <Button onClick={addAlertRule} variant="secondary" size="m">
             <Flex gap="8" vertical="center">
               <Icon name="plus" size="s" />
               <span>Add Rule</span>
@@ -500,7 +505,8 @@ export default function AlertsPage() {
           </Button>
         </Flex>
         <Text variant="body-default-m" onBackground="neutral-weak">
-          Configure event thresholds that trigger alerts. When the specified number of events occur within the time window, an alert will be sent.
+          Configure event thresholds that trigger alerts. When the specified number of events occur
+          within the time window, an alert will be sent.
         </Text>
 
         {!config.alertRules || config.alertRules.length === 0 ? (
@@ -538,9 +544,12 @@ export default function AlertsPage() {
                           style={{
                             padding: "4px 8px",
                             borderRadius: "4px",
-                            backgroundColor: rule.notificationType === 'call' ? 'rgba(251, 146, 60, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                            color: rule.notificationType === 'call' ? '#fb923c' : '#3b82f6',
-                            fontSize: '12px',
+                            backgroundColor:
+                              rule.notificationType === "call"
+                                ? "rgba(251, 146, 60, 0.1)"
+                                : "rgba(59, 130, 246, 0.1)",
+                            color: rule.notificationType === "call" ? "#fb923c" : "#3b82f6",
+                            fontSize: "12px",
                             fontWeight: 500,
                           }}
                         >
@@ -550,17 +559,15 @@ export default function AlertsPage() {
                     </Column>
                     <Flex gap="8">
                       <Button
-                        onClick={() => setEditingRuleIndex(editingRuleIndex === ruleIndex ? null : ruleIndex)}
+                        onClick={() =>
+                          setEditingRuleIndex(editingRuleIndex === ruleIndex ? null : ruleIndex)
+                        }
                         variant="ghost"
                         size="s"
                       >
                         <Icon name="edit" size="s" />
                       </Button>
-                      <Button
-                        onClick={() => removeAlertRule(ruleIndex)}
-                        variant="ghost"
-                        size="s"
-                      >
+                      <Button onClick={() => removeAlertRule(ruleIndex)} variant="ghost" size="s">
                         <Icon name="trash" size="s" />
                       </Button>
                     </Flex>
@@ -575,15 +582,19 @@ export default function AlertsPage() {
                         </Text>
                         <Flex gap="12">
                           <Button
-                            onClick={() => updateAlertRule(ruleIndex, { ...rule, notificationType: 'text' })}
-                            variant={rule.notificationType === 'text' ? 'primary' : 'secondary'}
+                            onClick={() =>
+                              updateAlertRule(ruleIndex, { ...rule, notificationType: "text" })
+                            }
+                            variant={rule.notificationType === "text" ? "primary" : "secondary"}
                             size="s"
                           >
                             Text Message
                           </Button>
                           <Button
-                            onClick={() => updateAlertRule(ruleIndex, { ...rule, notificationType: 'call' })}
-                            variant={rule.notificationType === 'call' ? 'primary' : 'secondary'}
+                            onClick={() =>
+                              updateAlertRule(ruleIndex, { ...rule, notificationType: "call" })
+                            }
+                            variant={rule.notificationType === "call" ? "primary" : "secondary"}
                             size="s"
                           >
                             Phone Call
@@ -593,16 +604,18 @@ export default function AlertsPage() {
 
                       {/* Global Limit */}
                       <Column gap="12">
-                        <Flex gap="12" vertical="center" >
+                        <Flex gap="12" vertical="center">
                           <Switch
                             isChecked={rule.globalLimit?.enabled ?? false}
-                            onToggle={() => updateAlertRule(ruleIndex, {
-                              ...rule,
-                              globalLimit: {
-                                ...rule.globalLimit,
-                                enabled: !(rule.globalLimit?.enabled ?? false)
-                              }
-                            })}
+                            onToggle={() =>
+                              updateAlertRule(ruleIndex, {
+                                ...rule,
+                                globalLimit: {
+                                  ...rule.globalLimit,
+                                  enabled: !(rule.globalLimit?.enabled ?? false),
+                                },
+                              })
+                            }
                           />
                           <Column gap="4">
                             <Text variant="body-default-s" onBackground="neutral-strong">
@@ -622,14 +635,16 @@ export default function AlertsPage() {
                               id="event-count"
                               label="Event Count"
                               value={rule.globalLimit?.maxAlerts || 10}
-                              onChange={(value) => updateAlertRule(ruleIndex, {
-                                ...rule,
-                                globalLimit: { ...rule.globalLimit, maxAlerts: value || 1 }
-                              })}
+                              onChange={(value) =>
+                                updateAlertRule(ruleIndex, {
+                                  ...rule,
+                                  globalLimit: { ...rule.globalLimit, maxAlerts: value || 1 },
+                                })
+                              }
                               min={1}
                               max={1000}
                               height="s"
-                              style={{ width: '180px' }}
+                              style={{ width: "180px" }}
                             />
                             <Text variant="body-default-s" onBackground="neutral-weak">
                               events within
@@ -638,14 +653,16 @@ export default function AlertsPage() {
                               id="window-minutes"
                               label="Window Minutes"
                               value={rule.globalLimit?.windowMinutes || 60}
-                              onChange={(value) => updateAlertRule(ruleIndex, {
-                                ...rule,
-                                globalLimit: { ...rule.globalLimit, windowMinutes: value || 1 }
-                              })}
+                              onChange={(value) =>
+                                updateAlertRule(ruleIndex, {
+                                  ...rule,
+                                  globalLimit: { ...rule.globalLimit, windowMinutes: value || 1 },
+                                })
+                              }
                               min={1}
                               max={1440}
                               height="s"
-                              style={{ width: '180px' }}
+                              style={{ width: "180px" }}
                             />
                             <Text variant="body-default-s" onBackground="neutral-weak">
                               minutes
@@ -688,10 +705,12 @@ export default function AlertsPage() {
                                   <Flex fillWidth horizontal="space-between" vertical="start">
                                     <Input
                                       value={messageRule.message}
-                                      onChange={(e) => updateMessageRule(ruleIndex, messageIndex, {
-                                        ...messageRule,
-                                        message: e.target.value
-                                      })}
+                                      onChange={(e) =>
+                                        updateMessageRule(ruleIndex, messageIndex, {
+                                          ...messageRule,
+                                          message: e.target.value,
+                                        })
+                                      }
                                       placeholder="Message to match"
                                       size="s"
                                       style={{ flex: 1 }}
@@ -712,14 +731,16 @@ export default function AlertsPage() {
                                       id={`message-event-count-${ruleIndex}-${messageIndex}`}
                                       label="Event Count"
                                       value={messageRule.maxAlerts}
-                                      onChange={(value) => updateMessageRule(ruleIndex, messageIndex, {
-                                        ...messageRule,
-                                        maxAlerts: value || 1
-                                      })}
+                                      onChange={(value) =>
+                                        updateMessageRule(ruleIndex, messageIndex, {
+                                          ...messageRule,
+                                          maxAlerts: value || 1,
+                                        })
+                                      }
                                       min={1}
                                       max={1000}
                                       height="s"
-                                      style={{ width: '180px' }}
+                                      style={{ width: "180px" }}
                                     />
                                     <Text variant="body-default-xs" onBackground="neutral-weak">
                                       events within
@@ -728,14 +749,16 @@ export default function AlertsPage() {
                                       id={`message-window-minutes-${ruleIndex}-${messageIndex}`}
                                       label="Window Minutes"
                                       value={messageRule.windowMinutes}
-                                      onChange={(value) => updateMessageRule(ruleIndex, messageIndex, {
-                                        ...messageRule,
-                                        windowMinutes: value || 1
-                                      })}
+                                      onChange={(value) =>
+                                        updateMessageRule(ruleIndex, messageIndex, {
+                                          ...messageRule,
+                                          windowMinutes: value || 1,
+                                        })
+                                      }
                                       min={1}
                                       max={1440}
                                       height="s"
-                                      style={{ width: '180px' }}
+                                      style={{ width: "180px" }}
                                     />
                                     <Text variant="body-default-xs" onBackground="neutral-weak">
                                       minutes
@@ -761,11 +784,12 @@ export default function AlertsPage() {
                       <Text variant="body-default-s" onBackground="neutral-weak">
                         {rule.globalLimit?.enabled
                           ? `Triggers after ${rule.globalLimit?.maxAlerts || 10} events within ${rule.globalLimit?.windowMinutes || 60} minutes`
-                          : 'No global threshold set'}
+                          : "No global threshold set"}
                       </Text>
                       {rule.messageRules && rule.messageRules.length > 0 && (
                         <Text variant="body-default-s" onBackground="neutral-weak">
-                          {rule.messageRules.length} message-specific rule{rule.messageRules.length > 1 ? 's' : ''}
+                          {rule.messageRules.length} message-specific rule
+                          {rule.messageRules.length > 1 ? "s" : ""}
                         </Text>
                       )}
                     </Column>
@@ -781,14 +805,15 @@ export default function AlertsPage() {
       {toastMessage && (
         <div
           style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            padding: '16px 24px',
-            backgroundColor: toastMessage.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            border: `1px solid ${toastMessage.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-            borderRadius: '8px',
-            color: toastMessage.type === 'success' ? '#22c55e' : '#ef4444',
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            padding: "16px 24px",
+            backgroundColor:
+              toastMessage.type === "success" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
+            border: `1px solid ${toastMessage.type === "success" ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+            borderRadius: "8px",
+            color: toastMessage.type === "success" ? "#22c55e" : "#ef4444",
             zIndex: 1001,
           }}
         >

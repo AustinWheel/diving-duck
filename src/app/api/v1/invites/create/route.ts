@@ -11,21 +11,18 @@ export async function POST(request: NextRequest) {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Missing or invalid authorization header" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const token = authHeader.substring(7);
-    
+
     // Verify the Firebase ID token
     let decodedToken;
     try {
       decodedToken = await getAuth().verifyIdToken(token);
     } catch (error) {
-      return NextResponse.json(
-        { error: "Invalid authentication token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid authentication token" }, { status: 401 });
     }
 
     const userId = decodedToken.uid;
@@ -35,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!projectId || !emails || !Array.isArray(emails)) {
       return NextResponse.json(
         { error: "Project ID and emails array are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,19 +43,13 @@ export async function POST(request: NextRequest) {
       .get();
 
     if (!memberDoc.exists) {
-      return NextResponse.json(
-        { error: "You are not a member of this project" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "You are not a member of this project" }, { status: 403 });
     }
 
     // Get project details
     const projectDoc = await adminDb.collection("projects").doc(projectId).get();
     if (!projectDoc.exists) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
     const project = projectDoc.data();
 
@@ -74,10 +65,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (validEmails.length === 0) {
-      return NextResponse.json(
-        { error: "No valid email addresses provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No valid email addresses provided" }, { status: 400 });
     }
 
     // Check for existing members
@@ -86,8 +74,8 @@ export async function POST(request: NextRequest) {
       .where("email", "in", validEmails)
       .get();
 
-    const existingEmails = new Set(existingMembers.docs.map(doc => doc.data().email));
-    
+    const existingEmails = new Set(existingMembers.docs.map((doc) => doc.data().email));
+
     // Check which users are already members
     const memberChecks = await Promise.all(
       existingMembers.docs.map(async (userDoc) => {
@@ -99,22 +87,22 @@ export async function POST(request: NextRequest) {
           email: userDoc.data().email,
           isMember: memberDoc.exists,
         };
-      })
+      }),
     );
 
     const alreadyMembers = memberChecks
-      .filter(check => check.isMember)
-      .map(check => check.email);
+      .filter((check) => check.isMember)
+      .map((check) => check.email);
 
-    const emailsToInvite = validEmails.filter(email => !alreadyMembers.includes(email));
+    const emailsToInvite = validEmails.filter((email) => !alreadyMembers.includes(email));
 
     if (emailsToInvite.length === 0) {
       return NextResponse.json(
-        { 
+        {
           error: "All provided emails are already project members",
-          alreadyMembers 
+          alreadyMembers,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -166,24 +154,22 @@ export async function POST(request: NextRequest) {
           await inviteRef.delete();
           throw new Error(`Failed to send email to ${email}`);
         }
-      })
+      }),
     );
 
     // Process results
-    const successful = results
-      .filter(r => r.status === "fulfilled")
-      .map(r => (r as any).value);
-    
+    const successful = results.filter((r) => r.status === "fulfilled").map((r) => (r as any).value);
+
     const failed = results
-      .filter(r => r.status === "rejected")
-      .map(r => ({
+      .filter((r) => r.status === "rejected")
+      .map((r) => ({
         email: (r as any).reason.message.split(" ").pop(),
         error: (r as any).reason.message,
       }));
 
     return NextResponse.json({
-      sent: successful.filter(s => s.status === "sent").length,
-      alreadyInvited: successful.filter(s => s.status === "already_invited").length,
+      sent: successful.filter((s) => s.status === "sent").length,
+      alreadyInvited: successful.filter((s) => s.status === "already_invited").length,
       alreadyMembers: alreadyMembers.length,
       failed: failed.length,
       details: {
@@ -194,9 +180,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating invites:", error);
-    return NextResponse.json(
-      { error: "Failed to create invites" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create invites" }, { status: 500 });
   }
 }

@@ -1,20 +1,12 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { track } from '@vercel/analytics';
-import {
-  Column,
-  Row,
-  Heading,
-  Text,
-  Button,
-  Icon,
-  Line,
-} from '@once-ui-system/core';
-import { signInWithGoogle, signInWithGitHub } from '@/lib/auth';
-import { Navbar } from '@/components/Navbar';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { track } from "@vercel/analytics";
+import { Column, Row, Heading, Text, Button, Icon, Line } from "@once-ui-system/core";
+import { signInWithGoogle, signInWithGitHub } from "@/lib/auth";
+import { Navbar } from "@/components/Navbar";
 
 export default function SignIn() {
   const router = useRouter();
@@ -26,9 +18,9 @@ export default function SignIn() {
     setError(null);
     try {
       await signInWithGoogle();
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (error: any) {
-      setError(error.message || 'Failed to sign in with Google');
+      setError(error.message || "Failed to sign in with Google");
     } finally {
       setLoading(false);
     }
@@ -39,9 +31,9 @@ export default function SignIn() {
     setError(null);
     try {
       await signInWithGitHub();
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (error: any) {
-      setError(error.message || 'Failed to sign in with GitHub');
+      setError(error.message || "Failed to sign in with GitHub");
     } finally {
       setLoading(false);
     }
@@ -50,10 +42,10 @@ export default function SignIn() {
   return (
     <>
       <Navbar />
-      <Column 
-        fillWidth 
-        style={{ 
-          minHeight: "100vh", 
+      <Column
+        fillWidth
+        style={{
+          minHeight: "100vh",
           position: "relative",
           display: "flex",
           alignItems: "center",
@@ -74,19 +66,11 @@ export default function SignIn() {
         >
           <Column gap="l" fillWidth>
             <Column gap="s" horizontal="center">
-              <Icon
-                name="key"
-                size="xl"
-                onBackground="brand-medium"
-              />
+              <Icon name="key" size="xl" onBackground="brand-medium" />
               <Heading variant="heading-strong-xl" align="center">
                 Welcome back
               </Heading>
-              <Text
-                variant="body-default-l"
-                onBackground="neutral-weak"
-                align="center"
-              >
+              <Text variant="body-default-l" onBackground="neutral-weak" align="center">
                 Sign in to access your dashboard
               </Text>
             </Column>
@@ -100,7 +84,10 @@ export default function SignIn() {
                   borderRadius: "8px",
                 }}
               >
-                <Text variant="body-default-s" style={{ color: "var(--danger-on-background-strong)" }}>
+                <Text
+                  variant="body-default-s"
+                  style={{ color: "var(--danger-on-background-strong)" }}
+                >
                   {error}
                 </Text>
               </div>
@@ -158,17 +145,19 @@ export default function SignIn() {
 
             <Line horizontal marginY="m" background="neutral-alpha-weak" />
 
-            <Text
-              variant="body-default-s"
-              onBackground="neutral-weak"
-              align="center"
-            >
+            <Text variant="body-default-s" onBackground="neutral-weak" align="center">
               By signing in, you agree to our{" "}
-              <Link href="/terms" style={{ color: "var(--brand-on-background-strong)", textDecoration: "underline" }}>
+              <Link
+                href="/terms"
+                style={{ color: "var(--brand-on-background-strong)", textDecoration: "underline" }}
+              >
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" style={{ color: "var(--brand-on-background-strong)", textDecoration: "underline" }}>
+              <Link
+                href="/privacy"
+                style={{ color: "var(--brand-on-background-strong)", textDecoration: "underline" }}
+              >
                 Privacy Policy
               </Link>
             </Text>

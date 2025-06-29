@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Column, Heading, Text, Button, Flex, Icon, Spinner } from '@once-ui-system/core';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { useProject } from '@/contexts/ProjectContext';
-import { Alert } from '@/types/database';
+import { useState, useEffect } from "react";
+import { Column, Heading, Text, Button, Flex, Icon, Spinner } from "@once-ui-system/core";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useProject } from "@/contexts/ProjectContext";
+import { Alert } from "@/types/database";
 
 export default function AlertHistoryPage() {
   const { currentProjectId, loading: projectsLoading } = useProject();
@@ -13,7 +13,10 @@ export default function AlertHistoryPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   useEffect(() => {
     const auth = getAuth();
@@ -43,38 +46,38 @@ export default function AlertHistoryPage() {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
-        console.log('No auth token available');
+        console.log("No auth token available");
         setLoading(false);
         return;
       }
 
-      const params = new URLSearchParams({ limit: '20' });
-      if (currentProjectId) params.append('projectId', currentProjectId);
-      if (append && cursor) params.append('cursor', cursor);
+      const params = new URLSearchParams({ limit: "20" });
+      if (currentProjectId) params.append("projectId", currentProjectId);
+      if (append && cursor) params.append("cursor", cursor);
 
       const response = await fetch(`/api/v1/alerts/history?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch alert history');
+        throw new Error("Failed to fetch alert history");
       }
 
       const data = await response.json();
-      
+
       if (append) {
-        setAlerts(prev => [...prev, ...data.alerts]);
+        setAlerts((prev) => [...prev, ...data.alerts]);
       } else {
         setAlerts(data.alerts);
       }
-      
+
       setCursor(data.nextCursor);
       setHasMore(data.hasMore);
     } catch (error) {
-      console.error('Error loading alerts:', error);
-      setToastMessage({ message: 'Failed to load alert history', type: 'error' });
+      console.error("Error loading alerts:", error);
+      setToastMessage({ message: "Failed to load alert history", type: "error" });
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -87,11 +90,16 @@ export default function AlertHistoryPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'sent': return '#22c55e';
-      case 'failed': return '#ef4444';
-      case 'pending': return '#fb923c';
-      case 'acknowledged': return '#3b82f6';
-      default: return '#6b7280';
+      case "sent":
+        return "#22c55e";
+      case "failed":
+        return "#ef4444";
+      case "pending":
+        return "#fb923c";
+      case "acknowledged":
+        return "#3b82f6";
+      default:
+        return "#6b7280";
     }
   };
 
@@ -144,9 +152,9 @@ export default function AlertHistoryPage() {
                 <Flex fillWidth horizontal="space-between" vertical="start">
                   <Column gap="4">
                     <Flex gap="12" vertical="center">
-                      <Icon 
-                        name={alert.notificationType === 'call' ? 'phone' : 'message'} 
-                        size="s" 
+                      <Icon
+                        name={alert.notificationType === "call" ? "phone" : "message"}
+                        size="s"
                       />
                       <Text variant="heading-strong-s">{alert.message}</Text>
                     </Flex>
@@ -160,7 +168,7 @@ export default function AlertHistoryPage() {
                       borderRadius: "4px",
                       backgroundColor: `${getStatusColor(alert.status)}20`,
                       color: getStatusColor(alert.status),
-                      fontSize: '12px',
+                      fontSize: "12px",
                       fontWeight: 500,
                     }}
                   >
@@ -170,19 +178,27 @@ export default function AlertHistoryPage() {
 
                 <Flex gap="24" wrap>
                   <Column gap="4">
-                    <Text variant="body-default-xs" onBackground="neutral-weak">Event Count</Text>
+                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                      Event Count
+                    </Text>
                     <Text variant="body-default-s">{alert.eventCount}</Text>
                   </Column>
                   <Column gap="4">
-                    <Text variant="body-default-xs" onBackground="neutral-weak">Window</Text>
+                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                      Window
+                    </Text>
                     <Text variant="body-default-s">
                       {formatDate(alert.windowStart)} - {formatDate(alert.windowEnd)}
                     </Text>
                   </Column>
                   {alert.error && (
                     <Column gap="4">
-                      <Text variant="body-default-xs" onBackground="neutral-weak">Error</Text>
-                      <Text variant="body-default-s" style={{ color: '#ef4444' }}>{alert.error}</Text>
+                      <Text variant="body-default-xs" onBackground="neutral-weak">
+                        Error
+                      </Text>
+                      <Text variant="body-default-s" style={{ color: "#ef4444" }}>
+                        {alert.error}
+                      </Text>
                     </Column>
                   )}
                 </Flex>
@@ -198,7 +214,7 @@ export default function AlertHistoryPage() {
                 size="m"
                 disabled={loadingMore}
               >
-                {loadingMore ? <Spinner size="s" /> : 'Load More'}
+                {loadingMore ? <Spinner size="s" /> : "Load More"}
               </Button>
             </Flex>
           )}
@@ -209,14 +225,15 @@ export default function AlertHistoryPage() {
       {toastMessage && (
         <div
           style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            padding: '16px 24px',
-            backgroundColor: toastMessage.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            border: `1px solid ${toastMessage.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-            borderRadius: '8px',
-            color: toastMessage.type === 'success' ? '#22c55e' : '#ef4444',
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            padding: "16px 24px",
+            backgroundColor:
+              toastMessage.type === "success" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
+            border: `1px solid ${toastMessage.type === "success" ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+            borderRadius: "8px",
+            color: toastMessage.type === "success" ? "#22c55e" : "#ef4444",
             zIndex: 1001,
           }}
         >

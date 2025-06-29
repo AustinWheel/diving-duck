@@ -1,17 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from './AuthContext';
-import { getAuth } from 'firebase/auth';
-import { useRouter, usePathname } from 'next/navigation';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "./AuthContext";
+import { getAuth } from "firebase/auth";
+import { useRouter, usePathname } from "next/navigation";
 
 interface Project {
   id: string;
   name: string;
   displayName: string;
-  type: 'personal' | 'team';
-  role: 'owner' | 'admin' | 'member';
+  type: "personal" | "team";
+  role: "owner" | "admin" | "member";
   memberCount: number;
   createdAt: Date | null;
 }
@@ -39,7 +39,7 @@ const ProjectContext = createContext<ProjectContextType>({
 export const useProject = () => {
   const context = useContext(ProjectContext);
   if (!context) {
-    throw new Error('useProject must be used within a ProjectProvider');
+    throw new Error("useProject must be used within a ProjectProvider");
   }
   return context;
 };
@@ -48,23 +48,23 @@ interface ProjectProviderProps {
   children: React.ReactNode;
 }
 
-const STORAGE_KEY = 'selectedProjectId';
+const STORAGE_KEY = "selectedProjectId";
 
 async function fetchProjects() {
   const auth = getAuth();
   const token = await auth.currentUser?.getIdToken();
   if (!token) {
-    throw new Error('No auth token available');
+    throw new Error("No auth token available");
   }
 
-  const response = await fetch('/api/v1/projects', {
+  const response = await fetch("/api/v1/projects", {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch projects');
+    throw new Error("Failed to fetch projects");
   }
 
   const data = await response.json();
@@ -78,26 +78,31 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   // Use TanStack Query to fetch projects
-  const { data: projects = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['projects', user?.uid],
+  const {
+    data: projects = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["projects", user?.uid],
     queryFn: fetchProjects,
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Derive current project from projects and currentProjectId
-  const currentProject = projects.find(p => p.id === currentProjectId) || null;
+  const currentProject = projects.find((p) => p.id === currentProjectId) || null;
 
   // Initialize project selection when projects are loaded
   useEffect(() => {
     if (projects.length > 0 && !currentProjectId) {
       // Get stored project ID
       const storedProjectId = localStorage.getItem(STORAGE_KEY);
-      
+
       // Priority: stored selection > first project
       let selectedProjectId: string | null = null;
-      
-      if (storedProjectId && projects.some(p => p.id === storedProjectId)) {
+
+      if (storedProjectId && projects.some((p) => p.id === storedProjectId)) {
         selectedProjectId = storedProjectId;
       } else if (projects.length > 0) {
         selectedProjectId = projects[0].id;
@@ -112,14 +117,14 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 
   // Handle case where user has no projects
   useEffect(() => {
-    if (!isLoading && user && projects.length === 0 && pathname !== '/onboarding') {
-      router.push('/onboarding');
+    if (!isLoading && user && projects.length === 0 && pathname !== "/onboarding") {
+      router.push("/onboarding");
     }
   }, [isLoading, user, projects, pathname, router]);
 
   // Switch to a different project
   const switchProject = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
+    const project = projects.find((p) => p.id === projectId);
     if (project) {
       setCurrentProjectId(projectId);
       localStorage.setItem(STORAGE_KEY, projectId);

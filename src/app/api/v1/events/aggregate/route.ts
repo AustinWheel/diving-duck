@@ -1,0 +1,154 @@
+import { NextRequest, NextResponse } from "next/server";
+import admin from "@/lib/firebaseAdmin";
+import { EventsService } from "@/lib/events";
+import { Project, LogType } from "@/types/database";
+import { adminDb } from "@/lib/firebaseAdmin";
+
+interface AggregateRequest {
+  startTime: string;
+  endTime: string;
+  stepSize: number; // in minutes
+  filters?: {
+    messages?: string[];
+    logTypes?: LogType[];
+  };
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get auth token from Authorization header
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { error: "Missing or invalid authorization header" },
+        { status: 401 },
+      );
+    }
+
+    const token = authHeader.substring(7);
+
+    // Verify the Firebase ID token
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(token);
+    } catch (error) {
+      return NextResponse.json({ error: "Invalid authentication token" }, { status: 401 });
+    }
+
+    const userId = decodedToken.uid;
+
+    // Get project ID from query params
+    const projectId = request.nextUrl.searchParams.get("projectId");
+
+    if (!projectId) {
+      return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
+    }
+
+    // Verify user has access to this project
+    const projectDoc = await adminDb.collection("projects").doc(projectId).get();
+    if (!projectDoc.exists) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    const projectData = projectDoc.data()! as Project;
+
+    // Verify user is a member or owner
+    if (projectData.ownerId !== userId && !projectData.memberIds?.includes(userId)) {
+      return NextResponse.json({ error: "Access denied to this project" }, { status: 403 });
+    }
+
+    // Parse request body
+    const body: AggregateRequest = await request.json();
+    const { startTime, endTime, stepSize, filters } = body;
+
+    // Validate time range
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return NextResponse.json({ error: "Invalid start or end time" }, { status: 400 });
+    }
+
+    // Limit to 2 weeks maximum
+    const twoWeeksMs = 14 * 24 * 60 * 60 * 1000;
+    if (end.getTime() - start.getTime() > twoWeeksMs) {
+      return NextResponse.json({ error: "Time range cannot exceed 2 weeks" }, { status: 400 });
+    }
+
+    // Validate step size
+    const validStepSizes = [60, 120, 180, 240, 300, 360, 720, 1440];
+    if (!validStepSizes.includes(stepSize)) {
+      return NextResponse.json({ error: "Invalid step size" }, { status: 400 });
+    }
+
+    // Query events and alerts in parallel
+    console.log(`[Aggregate API] Starting queries for project ${projectId}`);
+    console.log(`[Aggregate API] Time range: ${start.toISOString()} to ${end.toISOString()}`);
+    console.log(`[Aggregate API] Step size: ${stepSize} minutes`);
+    console.log(`[Aggregate API] Filters:`, filters);
+
+    const [events, alerts] = await Promise.all([
+      EventsService.queryEventsInChunks(projectId, start, end, filters),
+      EventsService.queryAlerts({ projectId, startTime: start, endTime: end }),
+    ]);
+
+    console.log(`[Aggregate API] Retrieved ${events.length} events and ${alerts.length} alerts`);
+
+    // Aggregate data for the chart
+    const chartData = EventsService.aggregateEventsByStepSize(events, stepSize, start, end);
+    console.log(`[Aggregate API] Generated ${Object.keys(chartData).length} time buckets`);
+
+    // Transform chart data for recharts format
+    const timeSeriesData = Object.entries(chartData).map(([timestamp, counts]) => {
+      const bucketAlerts = alerts.filter((alert) => {
+        const alertTime = new Date(alert.createdAt);
+        const bucketTime = new Date(timestamp);
+        const nextBucketTime = new Date(bucketTime.getTime() + stepSize * 60 * 1000);
+        return alertTime >= bucketTime && alertTime < nextBucketTime;
+      });
+
+      return {
+        timestamp,
+        ...counts,
+        alerts: bucketAlerts.length,
+        alertDetails: bucketAlerts, // Include alert details for the label
+      };
+    });
+
+    // Log sample of time series data
+    if (timeSeriesData.length > 0) {
+      console.log(`[Aggregate API] Sample time series data (first bucket):`, timeSeriesData[0]);
+      console.log(`[Aggregate API] Sample time series data (last bucket):`, timeSeriesData[timeSeriesData.length - 1]);
+    }
+
+    // Aggregate by message
+    const messageAggregated = EventsService.aggregateEventsByMessage(events);
+
+    // Get recent alerts
+    const recentAlerts = alerts
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10)
+      .map((alert) => ({
+        id: alert.id,
+        message: alert.message,
+        status: alert.status,
+        eventCount: alert.eventCount,
+        createdAt: alert.createdAt,
+        sentTo: alert.sentTo,
+      }));
+
+    return NextResponse.json({
+      timeSeriesData,
+      messageAggregated: messageAggregated.slice(0, 20), // Top 20 messages
+      recentAlerts,
+      summary: {
+        totalEvents: events.length,
+        totalAlerts: alerts.length,
+        uniqueMessages: messageAggregated.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error aggregating events:", error);
+    return NextResponse.json({ error: "Failed to aggregate events" }, { status: 500 });
+  }
+}

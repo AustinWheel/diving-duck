@@ -1,5 +1,5 @@
-import sgMail from '../sendgrid';
-import { SENDER_EMAIL } from '../sendgrid';
+import sgMail from "../sendgrid";
+import { SENDER_EMAIL } from "../sendgrid";
 
 interface SendInviteEmailParams {
   email: string;
@@ -14,8 +14,8 @@ export async function sendInviteEmail({
   projectName,
   inviterName,
 }: SendInviteEmailParams) {
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invite?id=${inviteId}`;
-  
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/invite?id=${inviteId}`;
+
   const msg = {
     to: email,
     from: SENDER_EMAIL,
@@ -147,7 +147,7 @@ The Warden Team
     await sgMail.send(msg);
     console.log(`Invite email sent to ${email}`);
   } catch (error) {
-    console.error('Error sending invite email:', error);
+    console.error("Error sending invite email:", error);
     throw error;
   }
 }

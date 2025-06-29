@@ -1,13 +1,13 @@
-import { 
-  getAuth, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
   GithubAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  User
-} from 'firebase/auth';
-import app from './firebaseClient';
+  User,
+} from "firebase/auth";
+import app from "./firebaseClient";
 
 const auth = getAuth(app);
 
@@ -21,7 +21,7 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error) {
-    console.error('Error signing in with Google:', error);
+    console.error("Error signing in with Google:", error);
     throw error;
   }
 };
@@ -32,7 +32,7 @@ export const signInWithGitHub = async () => {
     const result = await signInWithPopup(auth, githubProvider);
     return result.user;
   } catch (error) {
-    console.error('Error signing in with GitHub:', error);
+    console.error("Error signing in with GitHub:", error);
     throw error;
   }
 };
@@ -42,7 +42,7 @@ export const signOut = async () => {
   try {
     await firebaseSignOut(auth);
   } catch (error) {
-    console.error('Error signing out:', error);
+    console.error("Error signing out:", error);
     throw error;
   }
 };

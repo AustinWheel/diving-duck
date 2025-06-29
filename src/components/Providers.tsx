@@ -61,9 +61,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <IconProvider icons={iconLibrary}>
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
-                <ProjectProvider>
-                  {children}
-                </ProjectProvider>
+                <ProjectProvider>{children}</ProjectProvider>
               </AuthProvider>
             </QueryClientProvider>
           </IconProvider>

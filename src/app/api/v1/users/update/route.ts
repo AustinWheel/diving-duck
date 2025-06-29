@@ -4,10 +4,7 @@ import admin from "@/lib/firebaseAdmin";
 import { getAuth } from "firebase-admin/auth";
 
 // Allowed fields that users can update
-const ALLOWED_UPDATE_FIELDS = [
-  "displayName",
-  "phoneNumber",
-];
+const ALLOWED_UPDATE_FIELDS = ["displayName", "phoneNumber"];
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -16,21 +13,18 @@ export async function PATCH(request: NextRequest) {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Missing or invalid authorization header" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const token = authHeader.substring(7);
-    
+
     // Verify the Firebase ID token
     let decodedToken;
     try {
       decodedToken = await getAuth().verifyIdToken(token);
     } catch (error) {
-      return NextResponse.json(
-        { error: "Invalid authentication token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid authentication token" }, { status: 401 });
     }
 
     const userId = decodedToken.uid;
@@ -39,12 +33,9 @@ export async function PATCH(request: NextRequest) {
     // Check if user exists
     const userRef = adminDb.collection("users").doc(userId);
     const userDoc = await userRef.get();
-    
+
     if (!userDoc.exists) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Filter out non-allowed fields
@@ -59,10 +50,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!hasValidUpdates) {
-      return NextResponse.json(
-        { error: "No valid fields to update" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }
 
     // Validate specific fields
@@ -71,13 +59,13 @@ export async function PATCH(request: NextRequest) {
       if (typeof displayName !== "string" || displayName.length === 0) {
         return NextResponse.json(
           { error: "Display name must be a non-empty string" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       if (displayName.length > 100) {
         return NextResponse.json(
           { error: "Display name must be less than 100 characters" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -90,7 +78,7 @@ export async function PATCH(request: NextRequest) {
         if (!phoneRegex.test(phoneNumber)) {
           return NextResponse.json(
             { error: "Phone number must be in E.164 format (e.g., +1234567890)" },
-            { status: 400 }
+            { status: 400 },
           );
         }
       } else {
@@ -134,9 +122,6 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error updating user profile:", error);
-    return NextResponse.json(
-      { error: "Failed to update user profile" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update user profile" }, { status: 500 });
   }
 }

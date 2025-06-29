@@ -1,18 +1,29 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Column, Heading, Text, Flex, Button, Icon, Spinner, Input, Avatar, Badge } from '@once-ui-system/core';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { useProject } from '@/contexts/ProjectContext';
-import { format } from 'date-fns';
+import { useState, useEffect } from "react";
+import {
+  Column,
+  Heading,
+  Text,
+  Flex,
+  Button,
+  Icon,
+  Spinner,
+  Input,
+  Avatar,
+  Badge,
+} from "@once-ui-system/core";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useProject } from "@/contexts/ProjectContext";
+import { format } from "date-fns";
 
 interface TeamMember {
   id: string;
   email: string;
   displayName: string;
   photoURL?: string;
-  role: 'owner' | 'admin' | 'member';
+  role: "owner" | "admin" | "member";
   joinedAt: any;
 }
 
@@ -29,37 +40,37 @@ export default function TeamPage() {
   const { currentProjectId, loading: projectsLoading } = useProject();
   const queryClient = useQueryClient();
   const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteEmails, setInviteEmails] = useState<string[]>(['']);
-  const [inviteError, setInviteError] = useState('');
-  const [inviteSuccess, setInviteSuccess] = useState('');
+  const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
+  const [inviteError, setInviteError] = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 640);
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Fetch team members
   const { data: membersData, isLoading: loadingMembers } = useQuery({
-    queryKey: ['team-members', currentProjectId],
+    queryKey: ["team-members", currentProjectId],
     queryFn: async () => {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('No auth token');
+      if (!token) throw new Error("No auth token");
 
       const response = await fetch(`/api/v1/team/members?projectId=${currentProjectId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch team members');
+        throw new Error("Failed to fetch team members");
       }
 
       return response.json();
@@ -69,20 +80,20 @@ export default function TeamPage() {
 
   // Fetch invites sent by team
   const { data: invitesData, isLoading: loadingInvites } = useQuery({
-    queryKey: ['team-invites', currentProjectId],
+    queryKey: ["team-invites", currentProjectId],
     queryFn: async () => {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('No auth token');
+      if (!token) throw new Error("No auth token");
 
       const response = await fetch(`/api/v1/invites/list?projectId=${currentProjectId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch invites');
+        throw new Error("Failed to fetch invites");
       }
 
       return response.json();
@@ -92,20 +103,20 @@ export default function TeamPage() {
 
   // Fetch invites received by user
   const { data: myInvitesData, isLoading: loadingMyInvites } = useQuery({
-    queryKey: ['my-invites'],
+    queryKey: ["my-invites"],
     queryFn: async () => {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('No auth token');
+      if (!token) throw new Error("No auth token");
 
-      const response = await fetch('/api/v1/invites/my-invites', {
+      const response = await fetch("/api/v1/invites/my-invites", {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch my invites');
+        throw new Error("Failed to fetch my invites");
       }
 
       return response.json();
@@ -117,13 +128,13 @@ export default function TeamPage() {
     mutationFn: async (emails: string[]) => {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('No auth token');
+      if (!token) throw new Error("No auth token");
 
-      const response = await fetch('/api/v1/invites/create', {
-        method: 'POST',
+      const response = await fetch("/api/v1/invites/create", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           projectId: currentProjectId,
@@ -132,23 +143,23 @@ export default function TeamPage() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send invites');
+        throw new Error(data.error || "Failed to send invites");
       }
 
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['team-invites', currentProjectId] });
+      queryClient.invalidateQueries({ queryKey: ["team-invites", currentProjectId] });
       setInviteSuccess(`Successfully sent ${data.sent} invite(s)`);
-      setInviteEmails(['']);
+      setInviteEmails([""]);
       setShowInviteForm(false);
-      setTimeout(() => setInviteSuccess(''), 3000);
+      setTimeout(() => setInviteSuccess(""), 3000);
     },
     onError: (error: Error) => {
       setInviteError(error.message);
-      setTimeout(() => setInviteError(''), 5000);
+      setTimeout(() => setInviteError(""), 5000);
     },
   });
 
@@ -159,7 +170,7 @@ export default function TeamPage() {
 
     // Add new input if last one is filled
     if (index === inviteEmails.length - 1 && email) {
-      setInviteEmails([...newEmails, '']);
+      setInviteEmails([...newEmails, ""]);
     }
   };
 
@@ -168,29 +179,29 @@ export default function TeamPage() {
     mutationFn: async (inviteId: string) => {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('No auth token');
+      if (!token) throw new Error("No auth token");
 
       const response = await fetch(`/api/v1/invites/${inviteId}/accept`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to accept invite');
+        throw new Error(data.error || "Failed to accept invite");
       }
 
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['my-invites'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      setInviteSuccess('Invite accepted successfully!');
-      setTimeout(() => setInviteSuccess(''), 3000);
-      
+      queryClient.invalidateQueries({ queryKey: ["my-invites"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setInviteSuccess("Invite accepted successfully!");
+      setTimeout(() => setInviteSuccess(""), 3000);
+
       // Switch to the new project
       if (data.projectId) {
         window.location.href = `/dashboard?projectId=${data.projectId}`;
@@ -198,7 +209,7 @@ export default function TeamPage() {
     },
     onError: (error: Error) => {
       setInviteError(error.message);
-      setTimeout(() => setInviteError(''), 5000);
+      setTimeout(() => setInviteError(""), 5000);
     },
   });
 
@@ -207,38 +218,38 @@ export default function TeamPage() {
     mutationFn: async (inviteId: string) => {
       const auth = getAuth();
       const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('No auth token');
+      if (!token) throw new Error("No auth token");
 
       const response = await fetch(`/api/v1/invites/${inviteId}/decline`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to decline invite');
+        throw new Error(data.error || "Failed to decline invite");
       }
 
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-invites'] });
-      setInviteSuccess('Invite declined');
-      setTimeout(() => setInviteSuccess(''), 3000);
+      queryClient.invalidateQueries({ queryKey: ["my-invites"] });
+      setInviteSuccess("Invite declined");
+      setTimeout(() => setInviteSuccess(""), 3000);
     },
     onError: (error: Error) => {
       setInviteError(error.message);
-      setTimeout(() => setInviteError(''), 5000);
+      setTimeout(() => setInviteError(""), 5000);
     },
   });
 
   const handleSendInvites = () => {
-    const validEmails = inviteEmails.filter(email => email && email.includes('@'));
+    const validEmails = inviteEmails.filter((email) => email && email.includes("@"));
     if (validEmails.length === 0) {
-      setInviteError('Please enter at least one valid email address');
+      setInviteError("Please enter at least one valid email address");
       return;
     }
 
@@ -246,7 +257,7 @@ export default function TeamPage() {
   };
 
   const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'Unknown';
+    if (!timestamp) return "Unknown";
     try {
       // Handle different timestamp formats
       let date;
@@ -256,18 +267,18 @@ export default function TeamPage() {
       } else if (timestamp._seconds) {
         // Serialized Firestore timestamp
         date = new Date(timestamp._seconds * 1000);
-      } else if (typeof timestamp === 'string') {
+      } else if (typeof timestamp === "string") {
         // ISO string
         date = new Date(timestamp);
       } else {
         // Already a Date object or milliseconds
         date = new Date(timestamp);
       }
-      
-      return format(date, 'MMM d, yyyy');
+
+      return format(date, "MMM d, yyyy");
     } catch (error) {
-      console.error('Error formatting date:', error, timestamp);
-      return 'Unknown';
+      console.error("Error formatting date:", error, timestamp);
+      return "Unknown";
     }
   };
 
@@ -286,7 +297,7 @@ export default function TeamPage() {
   return (
     <Column fillWidth padding={isMobile ? "16" : "32"} gap={isMobile ? "24" : "32"}>
       <Flex fillWidth horizontal="space-between" vertical="center" gap="16" wrap>
-        <Column gap="8" style={{ flex: 1, minWidth: '200px' }}>
+        <Column gap="8" style={{ flex: 1, minWidth: "200px" }}>
           <Heading variant="display-strong-l">Team</Heading>
           <Text variant="body-default-l" onBackground="neutral-weak">
             Manage team members and invitations
@@ -297,9 +308,9 @@ export default function TeamPage() {
           variant="primary"
           size="m"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
           }}
         >
           <Icon name="userPlus" size="s" />
@@ -351,7 +362,7 @@ export default function TeamPage() {
             <Text variant="body-default-s" onBackground="neutral-weak">
               Enter email addresses to send invitations
             </Text>
-            
+
             <Column gap="8">
               {inviteEmails.map((email, index) => (
                 <Input
@@ -372,16 +383,12 @@ export default function TeamPage() {
                 size="m"
                 disabled={sendInvitesMutation.isPending}
               >
-                {sendInvitesMutation.isPending ? (
-                  <Spinner size="s" />
-                ) : (
-                  'Send Invites'
-                )}
+                {sendInvitesMutation.isPending ? <Spinner size="s" /> : "Send Invites"}
               </Button>
               <Button
                 onClick={() => {
                   setShowInviteForm(false);
-                  setInviteEmails(['']);
+                  setInviteEmails([""]);
                 }}
                 variant="ghost"
                 size="m"
@@ -420,13 +427,19 @@ export default function TeamPage() {
               <thead>
                 <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
                   <th style={{ padding: "12px", textAlign: "left" }}>
-                    <Text variant="body-strong-s" onBackground="neutral-weak">Member</Text>
+                    <Text variant="body-strong-s" onBackground="neutral-weak">
+                      Member
+                    </Text>
                   </th>
                   <th style={{ padding: "12px", textAlign: "left" }}>
-                    <Text variant="body-strong-s" onBackground="neutral-weak">Role</Text>
+                    <Text variant="body-strong-s" onBackground="neutral-weak">
+                      Role
+                    </Text>
                   </th>
                   <th style={{ padding: "12px", textAlign: "left" }}>
-                    <Text variant="body-strong-s" onBackground="neutral-weak">Joined</Text>
+                    <Text variant="body-strong-s" onBackground="neutral-weak">
+                      Joined
+                    </Text>
                   </th>
                 </tr>
               </thead>
@@ -435,7 +448,8 @@ export default function TeamPage() {
                   <tr
                     key={member.id}
                     style={{
-                      borderBottom: index < members.length - 1 ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
+                      borderBottom:
+                        index < members.length - 1 ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
                     }}
                   >
                     <td style={{ padding: "12px" }}>
@@ -449,15 +463,15 @@ export default function TeamPage() {
                           <Text variant="body-default-m" onBackground="neutral-strong">
                             {member.displayName}
                           </Text>
-                          <Text 
-                            variant="body-default-xs" 
+                          <Text
+                            variant="body-default-xs"
                             onBackground="neutral-weak"
                             style={{
-                              display: 'block',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              maxWidth: isMobile ? '120px' : '200px'
+                              display: "block",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: isMobile ? "120px" : "200px",
                             }}
                           >
                             {member.email}
@@ -467,7 +481,13 @@ export default function TeamPage() {
                     </td>
                     <td style={{ padding: "12px" }}>
                       <Badge
-                        variant={member.role === 'owner' ? 'danger' : member.role === 'admin' ? 'warning' : 'neutral'}
+                        variant={
+                          member.role === "owner"
+                            ? "danger"
+                            : member.role === "admin"
+                              ? "warning"
+                              : "neutral"
+                        }
                         size="s"
                       >
                         {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
@@ -507,13 +527,19 @@ export default function TeamPage() {
               <thead>
                 <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
                   <th style={{ padding: "12px", textAlign: "left" }}>
-                    <Text variant="body-strong-s" onBackground="neutral-weak">Email</Text>
+                    <Text variant="body-strong-s" onBackground="neutral-weak">
+                      Email
+                    </Text>
                   </th>
                   <th style={{ padding: "12px", textAlign: "left" }}>
-                    <Text variant="body-strong-s" onBackground="neutral-weak">Invited By</Text>
+                    <Text variant="body-strong-s" onBackground="neutral-weak">
+                      Invited By
+                    </Text>
                   </th>
                   <th style={{ padding: "12px", textAlign: "left" }}>
-                    <Text variant="body-strong-s" onBackground="neutral-weak">Sent</Text>
+                    <Text variant="body-strong-s" onBackground="neutral-weak">
+                      Sent
+                    </Text>
                   </th>
                 </tr>
               </thead>
@@ -522,19 +548,20 @@ export default function TeamPage() {
                   <tr
                     key={invite.id}
                     style={{
-                      borderBottom: index < invites.length - 1 ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
+                      borderBottom:
+                        index < invites.length - 1 ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
                     }}
                   >
                     <td style={{ padding: "12px" }}>
-                      <Text 
-                        variant="body-default-m" 
+                      <Text
+                        variant="body-default-m"
                         onBackground="neutral-strong"
                         style={{
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          maxWidth: isMobile ? '150px' : '250px'
+                          display: "block",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: isMobile ? "150px" : "250px",
                         }}
                       >
                         {invite.email}
@@ -576,11 +603,12 @@ export default function TeamPage() {
                   key={invite.id}
                   style={{
                     padding: "16px",
-                    borderBottom: index < myInvites.length - 1 ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
+                    borderBottom:
+                      index < myInvites.length - 1 ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
                   }}
                 >
                   <Flex fillWidth horizontal="space-between" vertical="center" gap="16" wrap>
-                    <Column gap="4" style={{ flex: 1, minWidth: '200px' }}>
+                    <Column gap="4" style={{ flex: 1, minWidth: "200px" }}>
                       <Text variant="body-strong-m" onBackground="neutral-strong">
                         {invite.projectName}
                       </Text>
@@ -595,11 +623,7 @@ export default function TeamPage() {
                         size="s"
                         disabled={acceptInviteMutation.isPending || declineInviteMutation.isPending}
                       >
-                        {acceptInviteMutation.isPending ? (
-                          <Spinner size="xs" />
-                        ) : (
-                          'Accept'
-                        )}
+                        {acceptInviteMutation.isPending ? <Spinner size="xs" /> : "Accept"}
                       </Button>
                       <Button
                         onClick={() => declineInviteMutation.mutate(invite.id)}
@@ -607,11 +631,7 @@ export default function TeamPage() {
                         size="s"
                         disabled={acceptInviteMutation.isPending || declineInviteMutation.isPending}
                       >
-                        {declineInviteMutation.isPending ? (
-                          <Spinner size="xs" />
-                        ) : (
-                          'Decline'
-                        )}
+                        {declineInviteMutation.isPending ? <Spinner size="xs" /> : "Decline"}
                       </Button>
                     </Flex>
                   </Flex>

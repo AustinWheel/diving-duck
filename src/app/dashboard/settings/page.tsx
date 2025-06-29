@@ -1,6 +1,6 @@
 "use client";
 
-import { Column, Heading, Text } from '@once-ui-system/core';
+import { Column, Heading, Text } from "@once-ui-system/core";
 
 export default function SettingsPage() {
   return (
@@ -11,7 +11,7 @@ export default function SettingsPage() {
           Configure your project and alert settings
         </Text>
       </Column>
-      
+
       <div
         style={{
           padding: "48px",

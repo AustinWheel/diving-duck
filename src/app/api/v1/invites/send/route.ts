@@ -8,23 +8,20 @@ export async function POST(request: NextRequest) {
     const { inviteIds } = await request.json();
 
     if (!inviteIds || !Array.isArray(inviteIds)) {
-      return NextResponse.json(
-        { error: "Invalid invite IDs" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid invite IDs" }, { status: 400 });
     }
 
     const results = await Promise.allSettled(
       inviteIds.map(async (inviteId) => {
         // Get invite details
         const inviteDoc = await adminDb.collection("invites").doc(inviteId).get();
-        
+
         if (!inviteDoc.exists) {
           throw new Error(`Invite ${inviteId} not found`);
         }
 
         const invite = inviteDoc.data();
-        
+
         if (invite.status !== "pending") {
           throw new Error(`Invite ${inviteId} is not pending`);
         }
@@ -56,25 +53,24 @@ export async function POST(request: NextRequest) {
         });
 
         return { inviteId, success: true };
-      })
+      }),
     );
 
     // Process results
-    const successful = results.filter(r => r.status === "fulfilled").map(r => (r as any).value);
-    const failed = results.filter(r => r.status === "rejected").map(r => ({
-      error: (r as any).reason.message
-    }));
+    const successful = results.filter((r) => r.status === "fulfilled").map((r) => (r as any).value);
+    const failed = results
+      .filter((r) => r.status === "rejected")
+      .map((r) => ({
+        error: (r as any).reason.message,
+      }));
 
     return NextResponse.json({
       sent: successful.length,
       failed: failed.length,
-      results: { successful, failed }
+      results: { successful, failed },
     });
   } catch (error) {
     console.error("Error sending invites:", error);
-    return NextResponse.json(
-      { error: "Failed to send invites" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to send invites" }, { status: 500 });
   }
 }

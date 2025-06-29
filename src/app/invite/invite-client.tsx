@@ -21,7 +21,7 @@ export default function InvitePageClient() {
     if (id) {
       setInviteId(id);
       loadInvite(id);
-      
+
       // Clear the pending invite from sessionStorage now that we're on the invite page
       const pendingInvite = sessionStorage.getItem("pendingInvite");
       if (pendingInvite === id) {
@@ -32,13 +32,12 @@ export default function InvitePageClient() {
     }
   }, [searchParams]);
 
-
   const loadInvite = async (id: string) => {
     setLoadingInvite(true);
     try {
       // Use API to load invite and project details
       const response = await fetch(`/api/v1/invites/${id}`);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           setError("Invite not found");
@@ -50,7 +49,7 @@ export default function InvitePageClient() {
       }
 
       const data = await response.json();
-      
+
       if (data.invite.status !== "pending") {
         setError("This invite has already been used");
         setLoadingInvite(false);
@@ -77,15 +76,15 @@ export default function InvitePageClient() {
 
       // Accept invite via API
       const response = await fetch(`/api/v1/invites/${inviteId}/accept`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${idToken}`,
+          Authorization: `Bearer ${idToken}`,
         },
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to accept invite');
+        throw new Error(error.error || "Failed to accept invite");
       }
 
       // Clear pending invite from session
@@ -96,7 +95,7 @@ export default function InvitePageClient() {
     } catch (error) {
       console.error("Error accepting invite:", error);
       setError(error instanceof Error ? error.message : "Failed to accept invite");
-      
+
       // If already a member, redirect after showing message
       if (error instanceof Error && error.message.includes("already a member")) {
         setTimeout(() => router.push("/dashboard"), 2000);
@@ -112,9 +111,10 @@ export default function InvitePageClient() {
         fillWidth
         fillHeight
         center
-        style={{ 
+        style={{
           minHeight: "100vh",
-          background: "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
+          background:
+            "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
         }}
       >
         <Spinner size="l" />
@@ -128,9 +128,10 @@ export default function InvitePageClient() {
         fillWidth
         fillHeight
         center
-        style={{ 
+        style={{
           minHeight: "100vh",
-          background: "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
+          background:
+            "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
         }}
       >
         <div
@@ -171,7 +172,8 @@ export default function InvitePageClient() {
         center
         style={{
           minHeight: "100vh",
-          background: "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
+          background:
+            "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
         }}
       >
         <div
@@ -210,7 +212,11 @@ export default function InvitePageClient() {
             </div>
 
             <Column gap="12">
-              <Text variant="body-default-m" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+              <Text
+                variant="body-default-m"
+                onBackground="neutral-weak"
+                style={{ textAlign: "center" }}
+              >
                 Sign in or create an account to accept this invitation
               </Text>
               <Button
@@ -242,7 +248,8 @@ export default function InvitePageClient() {
       center
       style={{
         minHeight: "100vh",
-        background: "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
+        background:
+          "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
       }}
     >
       <div

@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get("user-agent") || undefined;
 
     // Validate log type if provided
-    const validLogTypes: LogType[] = ['text', 'call', 'callText', 'log', 'warn', 'error'];
-    const logType = body.type || 'text';
+    const validLogTypes: LogType[] = ["text", "call", "callText", "log", "warn", "error"];
+    const logType = body.type || "text";
     if (!validLogTypes.includes(logType)) {
       return NextResponse.json({ error: "Invalid log type" }, { status: 400 });
     }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Check if this event triggers any alerts
     const eventWithId = { ...eventData, id: eventDoc.id };
     // Run alert checking asynchronously - don't block the response
-    checkAlertsForEvent(eventWithId).catch(error => {
+    checkAlertsForEvent(eventWithId).catch((error) => {
       console.error("[LOG API] Error checking alerts:", error);
     });
 

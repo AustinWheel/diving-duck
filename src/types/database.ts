@@ -74,7 +74,7 @@ export interface ApiKey {
 }
 
 // Log types supported
-export type LogType = 'text' | 'call' | 'callText' | 'log' | 'warn' | 'error';
+export type LogType = "text" | "call" | "callText" | "log" | "warn" | "error";
 
 // Event document in 'events' collection
 export interface LogEvent {
@@ -106,7 +106,7 @@ export interface Alert {
   sentTo?: string[]; // Phone numbers or emails
   error?: string; // Error message if sending failed
   createdAt: Date;
-  
+
   // For callText escalation tracking
   textAlertId?: string; // Reference to the text alert (for call escalations)
   acknowledgedAt?: Date; // When the alert was acknowledged

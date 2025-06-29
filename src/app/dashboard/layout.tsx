@@ -3,7 +3,17 @@
 import { useState, useEffect, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Flex, Text, Button, Avatar, Column, Icon, Background, Spinner, Row } from "@once-ui-system/core";
+import {
+  Flex,
+  Text,
+  Button,
+  Avatar,
+  Column,
+  Icon,
+  Background,
+  Spinner,
+  Row,
+} from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProject } from "@/contexts/ProjectContext";
 import { signOut } from "@/lib/auth";
@@ -28,7 +38,13 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const { projects, currentProject, currentProjectId, loading: projectsLoading, switchProject } = useProject();
+  const {
+    projects,
+    currentProject,
+    currentProjectId,
+    loading: projectsLoading,
+    switchProject,
+  } = useProject();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -42,36 +58,33 @@ export default function DashboardLayout({
     checkScreenSize();
 
     // Check on resize
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
-
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
+      router.push("/");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
   // Project dropdown items
-  const projectItems: MenuProps['items'] = projects.map((project) => ({
+  const projectItems: MenuProps["items"] = projects.map((project) => ({
     key: project.id,
     label: (
       <Row vertical="center" horizontal="space-between" fillWidth gap="12">
-        <Text variant="body-default-m">
-          {project.displayName}
-        </Text>
+        <Text variant="body-default-m">{project.displayName}</Text>
         <Row vertical="center" gap="8">
           <Text variant="body-default-xs" onBackground="neutral-weak" style={{ opacity: 0.6 }}>
-            {project.role === 'owner' ? 'Owner' : 'Member'}
+            {project.role === "owner" ? "Owner" : "Member"}
           </Text>
           {project.id === currentProjectId ? (
-            <CircleCheck size={16} style={{ color: '#4ade80', flexShrink: 0 }} />
+            <CircleCheck size={16} style={{ color: "#4ade80", flexShrink: 0 }} />
           ) : (
-            <Circle size={16} style={{ color: 'rgba(255, 255, 255, 0.3)', flexShrink: 0 }} />
+            <Circle size={16} style={{ color: "rgba(255, 255, 255, 0.3)", flexShrink: 0 }} />
           )}
         </Row>
       </Row>
@@ -81,16 +94,16 @@ export default function DashboardLayout({
       router.refresh();
     },
     style: {
-      backgroundColor: project.id === currentProjectId ? 'rgba(255, 107, 53, 0.08)' : 'transparent',
-      padding: '4px 12px',
-      minHeight: '28px',
-    }
+      backgroundColor: project.id === currentProjectId ? "rgba(255, 107, 53, 0.08)" : "transparent",
+      padding: "4px 12px",
+      minHeight: "28px",
+    },
   }));
 
   // User menu items
-  const userMenuItems: MenuProps['items'] = [
+  const userMenuItems: MenuProps["items"] = [
     {
-      key: 'signout',
+      key: "signout",
       label: (
         <Flex gap="12" center>
           <Icon name="logout" size="s" />
@@ -99,11 +112,14 @@ export default function DashboardLayout({
       ),
       onClick: handleSignOut,
       danger: true,
-    }
+    },
   ];
 
   return (
-    <Flex fillWidth style={{ minHeight: "100vh", background: "var(--page-background)", position: "relative" }}>
+    <Flex
+      fillWidth
+      style={{ minHeight: "100vh", background: "var(--page-background)", position: "relative" }}
+    >
       {/* Background Effect */}
       <Background
         position="absolute"
@@ -186,26 +202,26 @@ export default function DashboardLayout({
 
           {/* Sidebar Toggle - Only show in header when sidebar is open */}
           <div
-            onClick={() => setSidebarOpen(sidebar => !sidebar)}
+            onClick={() => setSidebarOpen((sidebar) => !sidebar)}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '12px',
-              backgroundColor: 'transparent',
-              color: 'var(--neutral-on-background-weak)',
-              borderRadius: '8px',
-              transition: 'all 0.2s ease',
-              cursor: 'pointer',
-              marginBottom: '4px',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "12px",
+              backgroundColor: "transparent",
+              color: "var(--neutral-on-background-weak)",
+              borderRadius: "8px",
+              transition: "all 0.2s ease",
+              cursor: "pointer",
+              marginBottom: "4px",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
-              e.currentTarget.style.color = 'var(--neutral-on-background-strong)';
+              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+              e.currentTarget.style.color = "var(--neutral-on-background-strong)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--neutral-on-background-weak)';
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "var(--neutral-on-background-weak)";
             }}
           >
             <PanelLeft size={20} />
@@ -220,20 +236,24 @@ export default function DashboardLayout({
                 <Spinner size="s" />
               </Flex>
             ) : projects.length === 0 ? (
-              <Text variant="body-default-s" onBackground="neutral-weak" style={{ textAlign: "center", padding: "16px" }}>
+              <Text
+                variant="body-default-s"
+                onBackground="neutral-weak"
+                style={{ textAlign: "center", padding: "16px" }}
+              >
                 No projects yet
               </Text>
             ) : (
               <ConfigProvider
                 theme={{
                   token: {
-                    colorBgElevated: 'rgba(20, 20, 20, 0.98)',
-                    colorBorder: 'rgba(255, 255, 255, 0.08)',
-                    colorText: 'rgba(255, 255, 255, 0.9)',
-                    colorTextSecondary: 'rgba(255, 255, 255, 0.6)',
+                    colorBgElevated: "rgba(20, 20, 20, 0.98)",
+                    colorBorder: "rgba(255, 255, 255, 0.08)",
+                    colorText: "rgba(255, 255, 255, 0.9)",
+                    colorTextSecondary: "rgba(255, 255, 255, 0.6)",
                     borderRadius: 8,
-                    controlItemBgHover: 'rgba(255, 255, 255, 0.08)',
-                    controlItemBgActive: 'rgba(255, 107, 53, 0.08)',
+                    controlItemBgHover: "rgba(255, 255, 255, 0.08)",
+                    controlItemBgActive: "rgba(255, 107, 53, 0.08)",
                     controlPaddingHorizontal: 0,
                     padding: 4,
                   },
@@ -241,20 +261,22 @@ export default function DashboardLayout({
               >
                 <Dropdown
                   menu={{ items: projectItems }}
-                  trigger={['click']}
+                  trigger={["click"]}
                   placement="bottomLeft"
                   overlayStyle={{
-                    minWidth: '248px',
+                    minWidth: "248px",
                   }}
                   popupRender={(menu) => (
-                    <div style={{
-                      backgroundColor: 'rgba(20, 20, 20, 0.98)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-                      backdropFilter: 'blur(24px)',
-                      WebkitBackdropFilter: 'blur(24px)',
-                    }}>
+                    <div
+                      style={{
+                        backgroundColor: "rgba(20, 20, 20, 0.98)",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        borderRadius: "8px",
+                        boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+                        backdropFilter: "blur(24px)",
+                        WebkitBackdropFilter: "blur(24px)",
+                      }}
+                    >
                       {menu}
                     </div>
                   )}
@@ -296,7 +318,8 @@ export default function DashboardLayout({
         {/* Navigation */}
         <Column style={{ flex: 1, padding: "8px" }}>
           {navigationItems.map((item) => {
-            const isActive = pathname === item.href ||
+            const isActive =
+              pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
             return (
@@ -304,19 +327,21 @@ export default function DashboardLayout({
                 key={item.href}
                 href={item.href}
                 style={{
-                  textDecoration: 'none',
-                  display: 'block',
-                  marginBottom: '4px',
+                  textDecoration: "none",
+                  display: "block",
+                  marginBottom: "4px",
                 }}
               >
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
+                    display: "flex",
+                    alignItems: "center",
                     justifyContent: sidebarOpen ? "flex-start" : "center",
                     padding: sidebarOpen ? "12px 16px" : "12px",
                     backgroundColor: isActive ? "rgba(255, 107, 53, 0.1)" : "transparent",
-                    color: isActive ? "var(--brand-on-background-strong)" : "var(--neutral-on-background-weak)",
+                    color: isActive
+                      ? "var(--brand-on-background-strong)"
+                      : "var(--neutral-on-background-weak)",
                     borderRadius: "8px",
                     transition: "all 0.2s ease",
                     cursor: "pointer",
@@ -355,15 +380,15 @@ export default function DashboardLayout({
           <ConfigProvider
             theme={{
               token: {
-                colorBgElevated: 'rgba(20, 20, 20, 0.98)',
-                colorBorder: 'rgba(255, 255, 255, 0.08)',
-                colorText: 'rgba(255, 255, 255, 0.9)',
-                colorTextSecondary: 'rgba(255, 255, 255, 0.6)',
+                colorBgElevated: "rgba(20, 20, 20, 0.98)",
+                colorBorder: "rgba(255, 255, 255, 0.08)",
+                colorText: "rgba(255, 255, 255, 0.9)",
+                colorTextSecondary: "rgba(255, 255, 255, 0.6)",
                 borderRadius: 8,
-                controlItemBgHover: 'rgba(255, 255, 255, 0.08)',
-                colorError: 'rgba(255, 59, 48, 1)',
-                colorErrorHover: 'rgba(255, 59, 48, 0.8)',
-                colorErrorBg: 'rgba(255, 59, 48, 0.1)',
+                controlItemBgHover: "rgba(255, 255, 255, 0.08)",
+                colorError: "rgba(255, 59, 48, 1)",
+                colorErrorHover: "rgba(255, 59, 48, 0.8)",
+                colorErrorBg: "rgba(255, 59, 48, 0.1)",
                 controlPaddingHorizontal: 0,
                 padding: 4,
               },
@@ -371,17 +396,19 @@ export default function DashboardLayout({
           >
             <Dropdown
               menu={{ items: userMenuItems }}
-              trigger={['click']}
+              trigger={["click"]}
               placement="topLeft"
               popupRender={(menu) => (
-                <div style={{
-                  backgroundColor: 'rgba(20, 20, 20, 0.98)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-                  backdropFilter: 'blur(24px)',
-                  WebkitBackdropFilter: 'blur(24px)',
-                }}>
+                <div
+                  style={{
+                    backgroundColor: "rgba(20, 20, 20, 0.98)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "8px",
+                    boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+                    backdropFilter: "blur(24px)",
+                    WebkitBackdropFilter: "blur(24px)",
+                  }}
+                >
                   {menu}
                 </div>
               )}
@@ -425,13 +452,10 @@ export default function DashboardLayout({
             </Dropdown>
           </ConfigProvider>
         </div>
-
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
-        {children}
-      </div>
+      <div style={{ flex: 1, overflow: "auto", position: "relative" }}>{children}</div>
     </Flex>
   );
 }

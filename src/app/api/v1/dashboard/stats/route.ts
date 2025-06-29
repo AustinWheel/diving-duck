@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Missing or invalid authorization header" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -20,10 +20,7 @@ export async function GET(request: NextRequest) {
     try {
       decodedToken = await admin.auth().verifyIdToken(token);
     } catch (error) {
-      return NextResponse.json(
-        { error: "Invalid authentication token" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid authentication token" }, { status: 401 });
     }
 
     const userId = decodedToken.uid;
@@ -32,34 +29,25 @@ export async function GET(request: NextRequest) {
     const projectId = request.nextUrl.searchParams.get("projectId");
 
     if (!projectId) {
-      return NextResponse.json(
-        { error: "Project ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
     }
 
     // Verify user has access to this project
     const projectDoc = await adminDb.collection("projects").doc(projectId).get();
     if (!projectDoc.exists) {
       console.warn("Project not found for user:", userId);
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     const projectData = projectDoc.data()! as Project;
 
     // Verify user is a member or owner
     if (projectData.ownerId !== userId && !projectData.memberIds?.includes(userId)) {
-      return NextResponse.json(
-        { error: "Access denied to this project" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Access denied to this project" }, { status: 403 });
     }
 
     // Get team member count (memberIds includes owner)
-    const teamMemberCount = (projectData.memberIds?.length || 0);
+    const teamMemberCount = projectData.memberIds?.length || 0;
     console.log(`Project ${projectId} has ${teamMemberCount} members total`);
 
     // Count active API keys
@@ -74,11 +62,13 @@ export async function GET(request: NextRequest) {
       .where("isActive", "==", true)
       .get();
 
-    console.log(`Total keys for project ${projectId}: ${allKeysSnapshot.size}, Active keys: ${keysSnapshot.size}`);
+    console.log(
+      `Total keys for project ${projectId}: ${allKeysSnapshot.size}, Active keys: ${keysSnapshot.size}`,
+    );
 
     // Count events in last 24 hours
     const twentyFourHoursAgo = admin.firestore.Timestamp.fromDate(
-      new Date(Date.now() - 24 * 60 * 60 * 1000)
+      new Date(Date.now() - 24 * 60 * 60 * 1000),
     );
     const eventsSnapshot = await adminDb
       .collection("events")
@@ -108,13 +98,10 @@ export async function GET(request: NextRequest) {
         id: projectId,
         name: projectData.name,
         displayName: projectData.displayName,
-      }
+      },
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch dashboard stats" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch dashboard stats" }, { status: 500 });
   }
 }

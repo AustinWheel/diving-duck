@@ -57,10 +57,10 @@ export default function OnboardingPage() {
 
     try {
       // Use the validation API endpoint
-      const response = await fetch('/api/v1/projects/validate-name', {
-        method: 'POST',
+      const response = await fetch("/api/v1/projects/validate-name", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ name }),
       });
@@ -114,11 +114,11 @@ export default function OnboardingPage() {
       const idToken = await user!.getIdToken();
 
       // Create the project via API
-      const projectResponse = await fetch('/api/v1/projects/create', {
-        method: 'POST',
+      const projectResponse = await fetch("/api/v1/projects/create", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           name: projectName,
@@ -128,34 +128,34 @@ export default function OnboardingPage() {
 
       if (!projectResponse.ok) {
         const error = await projectResponse.json();
-        throw new Error(error.error || 'Failed to create project');
+        throw new Error(error.error || "Failed to create project");
       }
 
       const { project, keys } = await projectResponse.json();
       setProjectId(project.id);
 
       // Create invites if there are valid emails
-      const validEmails = inviteEmails.filter(email => email && email.includes("@"));
-      
+      const validEmails = inviteEmails.filter((email) => email && email.includes("@"));
+
       if (validEmails.length > 0) {
         try {
-          const inviteResponse = await fetch('/api/v1/invites/create', {
-            method: 'POST',
+          const inviteResponse = await fetch("/api/v1/invites/create", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${idToken}`,
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
             },
             body: JSON.stringify({
               projectId: project.id,
               emails: validEmails,
             }),
           });
-          
+
           if (!inviteResponse.ok) {
-            console.error('Failed to send some invite emails');
+            console.error("Failed to send some invite emails");
           }
         } catch (error) {
-          console.error('Error sending invite emails:', error);
+          console.error("Error sending invite emails:", error);
         }
       }
 
@@ -180,15 +180,15 @@ export default function OnboardingPage() {
       const idToken = await user.getIdToken();
 
       // Mark user as onboarded via API
-      const response = await fetch('/api/v1/users/complete-onboarding', {
-        method: 'POST',
+      const response = await fetch("/api/v1/users/complete-onboarding", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${idToken}`,
+          Authorization: `Bearer ${idToken}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to complete onboarding');
+        throw new Error("Failed to complete onboarding");
       }
 
       router.push("/dashboard");
@@ -198,7 +198,7 @@ export default function OnboardingPage() {
   };
 
   const renderStepIndicator = () => (
-    <Flex gap="8" horizontal="center" vertical="center" style={{ }}>
+    <Flex gap="8" horizontal="center" vertical="center" style={{}}>
       {[1, 2, 3].map((step) => (
         <div
           key={step}
@@ -206,11 +206,12 @@ export default function OnboardingPage() {
             width: "8px",
             height: "8px",
             borderRadius: "50%",
-            backgroundColor: step === currentStep 
-              ? "var(--brand-background-strong)" 
-              : step < currentStep 
-                ? "var(--brand-background-medium)" 
-                : "var(--neutral-background-medium)",
+            backgroundColor:
+              step === currentStep
+                ? "var(--brand-background-strong)"
+                : step < currentStep
+                  ? "var(--brand-background-medium)"
+                  : "var(--neutral-background-medium)",
             transition: "all 0.3s ease",
           }}
         />
@@ -222,7 +223,10 @@ export default function OnboardingPage() {
     switch (currentStep) {
       case 1:
         return (
-          <Column gap="32" style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}>
+          <Column
+            gap="32"
+            style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
+          >
             <Column gap="12">
               <Text variant="heading-strong-l" onBackground="neutral-strong">
                 Create your project
@@ -231,7 +235,7 @@ export default function OnboardingPage() {
                 Choose a unique name for your project
               </Text>
             </Column>
-            
+
             <Column gap="16">
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <Text variant="body-default-m" onBackground="neutral-weak">
@@ -268,7 +272,10 @@ export default function OnboardingPage() {
 
       case 2:
         return (
-          <Column gap="32" style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}>
+          <Column
+            gap="32"
+            style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
+          >
             <Column gap="12">
               <Text variant="heading-strong-l" onBackground="neutral-strong">
                 Invite your team
@@ -277,7 +284,7 @@ export default function OnboardingPage() {
                 Add team members who should receive alerts
               </Text>
             </Column>
-            
+
             <Column gap="12" style={{ maxHeight: "300px", overflowY: "auto" }}>
               {inviteEmails.map((email, index) => (
                 <Input
@@ -295,7 +302,9 @@ export default function OnboardingPage() {
             <Flex gap="12">
               <Button
                 onClick={handleSendInvites}
-                disabled={isCreatingProject || !inviteEmails.some(email => email && email.includes("@"))}
+                disabled={
+                  isCreatingProject || !inviteEmails.some((email) => email && email.includes("@"))
+                }
                 variant="primary"
                 size="l"
                 fillWidth
@@ -321,7 +330,10 @@ export default function OnboardingPage() {
 
       case 3:
         return (
-          <Column gap="48" style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}>
+          <Column
+            gap="48"
+            style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
+          >
             <Column gap="16" style={{ textAlign: "center" }}>
               <Text variant="heading-strong-xl" onBackground="neutral-strong">
                 You're all set! 🎉
@@ -330,10 +342,12 @@ export default function OnboardingPage() {
                 Here's what to do next:
               </Text>
             </Column>
-            
+
             <Flex gap="24" wrap>
               <Column gap="12" style={{ flex: "1", minWidth: "140px" }}>
-                <Badge variant="success" size="s" style={{ alignSelf: "center" }}>1</Badge>
+                <Badge variant="success" size="s" style={{ alignSelf: "center" }}>
+                  1
+                </Badge>
                 <Column gap="4" align="center" style={{ textAlign: "center" }}>
                   <Text variant="body-strong-m" onBackground="neutral-strong">
                     Generate API keys
@@ -345,7 +359,9 @@ export default function OnboardingPage() {
               </Column>
 
               <Column gap="12" style={{ flex: "1", minWidth: "140px" }}>
-                <Badge variant="info" size="s" style={{ alignSelf: "center" }}>2</Badge>
+                <Badge variant="info" size="s" style={{ alignSelf: "center" }}>
+                  2
+                </Badge>
                 <Column gap="4" align="center" style={{ textAlign: "center" }}>
                   <Text variant="body-strong-m" onBackground="neutral-strong">
                     Use console.text()
@@ -357,7 +373,9 @@ export default function OnboardingPage() {
               </Column>
 
               <Column gap="12" style={{ flex: "1", minWidth: "140px" }}>
-                <Badge variant="warning" size="s" style={{ alignSelf: "center" }}>3</Badge>
+                <Badge variant="warning" size="s" style={{ alignSelf: "center" }}>
+                  3
+                </Badge>
                 <Column gap="4" align="center" style={{ textAlign: "center" }}>
                   <Text variant="body-strong-m" onBackground="neutral-strong">
                     Get notified
@@ -392,9 +410,10 @@ export default function OnboardingPage() {
         fillWidth
         fillHeight
         center
-        style={{ 
+        style={{
           minHeight: "100vh",
-          background: "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
+          background:
+            "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
         }}
       >
         <Spinner size="l" />
@@ -412,7 +431,8 @@ export default function OnboardingPage() {
       center
       style={{
         minHeight: "100vh",
-        background: "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
+        background:
+          "radial-gradient(circle at top center, var(--brand-background-weak) 0%, transparent 50%), var(--page-background)",
       }}
     >
       <Column gap="32" align="center" style={{ width: "100%", maxWidth: "480px", padding: "24px" }}>

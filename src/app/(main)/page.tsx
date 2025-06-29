@@ -70,8 +70,8 @@ export default function Home() {
               marginBottom: "40px",
             }}
           >
-            Drop console.text() anywhere in your code. Get instant alerts when
-            things need attention. Fast, simple, and reliable.
+            Drop console.text() anywhere in your code. Get instant alerts when things need
+            attention. Fast, simple, and reliable.
           </Text>
 
           <Flex gap="m" wrap horizontal="center">
@@ -187,10 +187,7 @@ export default function Home() {
           align="center"
           style={{ position: "relative", zIndex: 1 }}
         >
-          <Heading
-            variant="display-strong-m"
-            align="center"
-          >
+          <Heading variant="display-strong-m" align="center">
             Real-time visibility into your application
           </Heading>
 
@@ -200,23 +197,29 @@ export default function Home() {
             onBackground="neutral-weak"
             style={{ maxWidth: "600px" }}
           >
-            Monitor events as they happen. Filter by type, search messages, and track user activity—all in one unified dashboard.
+            Monitor events as they happen. Filter by type, search messages, and track user
+            activity—all in one unified dashboard.
           </Text>
 
-          <div style={{
-            position: "relative",
-            marginTop: "40px",
-            marginBottom: "40px",
-            maxWidth: "100%",
-            width: "fit-content",
-          }}>
-            <div style={{
-              position: "absolute",
-              inset: "-60px",
-              background: "radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 50%)",
-              filter: "blur(60px)",
-              zIndex: -1,
-            }} />
+          <div
+            style={{
+              position: "relative",
+              marginTop: "40px",
+              marginBottom: "40px",
+              maxWidth: "100%",
+              width: "fit-content",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: "-60px",
+                background:
+                  "radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 50%)",
+                filter: "blur(60px)",
+                zIndex: -1,
+              }}
+            />
             <img
               src="/images/logs-example.png"
               alt="Event logs dashboard example"
@@ -231,11 +234,7 @@ export default function Home() {
             />
           </div>
 
-          <Text
-            variant="body-default-m"
-            align="center"
-            onBackground="neutral-weak"
-          >
+          <Text variant="body-default-m" align="center" onBackground="neutral-weak">
             From development to production, never miss a critical event
           </Text>
         </Column>
@@ -258,10 +257,11 @@ export default function Home() {
             }}
           >
             <CodeBlock
-              codes={[{
-                label: "Quick Start",
-                language: "javascript",
-                code: `// Install the SDK
+              codes={[
+                {
+                  label: "Quick Start",
+                  language: "javascript",
+                  code: `// Install the SDK
 npm install console-warden
 
 // Add to your code
@@ -276,8 +276,9 @@ try {
     userId: user.id,
     error: error.message 
   });
-}`
-              }]}
+}`,
+                },
+              ]}
               copyButton
               compact
               style={{ backgroundColor: "transparent" }}

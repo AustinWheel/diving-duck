@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, onAuthStateChange } from '@/lib/auth';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { User, onAuthStateChange } from "@/lib/auth";
 
 interface AuthContextType {
   user: User | null;
@@ -16,7 +16,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -32,14 +32,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChange(async (firebaseUser) => {
       setUser(firebaseUser);
-      
+
       if (firebaseUser) {
         // Create or update user in Firestore
         try {
-          const response = await fetch('/api/auth/sync-user', {
-            method: 'POST',
+          const response = await fetch("/api/auth/sync-user", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               uid: firebaseUser.uid,
@@ -48,39 +48,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               photoURL: firebaseUser.photoURL,
             }),
           });
-          
+
           if (!response.ok) {
-            console.error('Failed to sync user with database');
+            console.error("Failed to sync user with database");
           } else {
             const data = await response.json();
-            
+
             // Check for pending invite
-            const pendingInvite = sessionStorage.getItem('pendingInvite');
+            const pendingInvite = sessionStorage.getItem("pendingInvite");
             if (pendingInvite) {
               window.location.href = `/invite?id=${pendingInvite}`;
               return;
             }
-            
+
             // Redirect to onboarding if not onboarded
-            if (!data.isOnboarded && window.location.pathname !== '/onboarding' && !window.location.pathname.startsWith('/invite')) {
-              window.location.href = '/onboarding';
+            if (
+              !data.isOnboarded &&
+              window.location.pathname !== "/onboarding" &&
+              !window.location.pathname.startsWith("/invite")
+            ) {
+              window.location.href = "/onboarding";
               return;
             }
           }
         } catch (error) {
-          console.error('Error syncing user:', error);
+          console.error("Error syncing user:", error);
         }
       }
-      
+
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
 };

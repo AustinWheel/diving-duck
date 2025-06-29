@@ -1,77 +1,65 @@
-import { NextRequest, NextResponse } from 'next/server';
-import admin from '@/lib/firebaseAdmin';
-import { User, Project } from '@/types/database';
+import { NextRequest, NextResponse } from "next/server";
+import admin from "@/lib/firebaseAdmin";
+import { User, Project } from "@/types/database";
 
 const adminDb = admin.firestore();
 
 export async function POST(request: NextRequest) {
   try {
     // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: 'Missing or invalid authorization header' },
-        { status: 401 }
+        { error: "Missing or invalid authorization header" },
+        { status: 401 },
       );
     }
 
     // Verify the ID token
-    const idToken = authHeader.split('Bearer ')[1];
+    const idToken = authHeader.split("Bearer ")[1];
     let decodedToken;
     try {
       decodedToken = await admin.auth().verifyIdToken(idToken);
     } catch (error) {
-      return NextResponse.json(
-        { error: 'Invalid authentication token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid authentication token" }, { status: 401 });
     }
 
     const userId = decodedToken.uid;
 
     // Get user document
-    const userDoc = await adminDb.collection('users').doc(userId).get();
+    const userDoc = await adminDb.collection("users").doc(userId).get();
     if (!userDoc.exists) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get project ID from query params
-    const projectId = request.nextUrl.searchParams.get('projectId');
+    const projectId = request.nextUrl.searchParams.get("projectId");
 
     if (!projectId) {
-      return NextResponse.json(
-        { error: 'Project ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Project ID is required" }, { status: 400 });
     }
 
     // Verify user has access to this project
-    const projectDoc = await adminDb.collection('projects').doc(projectId).get();
+    const projectDoc = await adminDb.collection("projects").doc(projectId).get();
     if (!projectDoc.exists) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     const projectData = projectDoc.data() as Project;
-    
+
     // Only owner and admins can send test alerts
     if (projectData.ownerId !== userId) {
       const memberDoc = await adminDb
-        .collection('projects')
+        .collection("projects")
         .doc(projectId)
-        .collection('members')
+        .collection("members")
         .doc(userId)
         .get();
-      
-      if (!memberDoc.exists || memberDoc.data()?.role !== 'admin') {
+
+      if (!memberDoc.exists || memberDoc.data()?.role !== "admin") {
         return NextResponse.json(
-          { error: 'Only project owners and admins can send test alerts' },
-          { status: 403 }
+          { error: "Only project owners and admins can send test alerts" },
+          { status: 403 },
         );
       }
     }
@@ -79,25 +67,22 @@ export async function POST(request: NextRequest) {
     // Check if alerts are configured
     if (!projectData.alertConfig?.enabled) {
       return NextResponse.json(
-        { error: 'Alerts are not enabled for this project' },
-        { status: 400 }
+        { error: "Alerts are not enabled for this project" },
+        { status: 400 },
       );
     }
 
     if (!projectData.alertConfig?.phoneNumbers?.length) {
       return NextResponse.json(
-        { error: 'No phone numbers configured for alerts' },
-        { status: 400 }
+        { error: "No phone numbers configured for alerts" },
+        { status: 400 },
       );
     }
 
     // Send test SMS
     const textbeltKey = process.env.TEXTBELT_API_KEY;
     if (!textbeltKey) {
-      return NextResponse.json(
-        { error: 'SMS service not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "SMS service not configured" }, { status: 500 });
     }
 
     const testMessage = `Test alert from ${projectData.displayName}. Your alerts are working correctly!`;
@@ -105,10 +90,10 @@ export async function POST(request: NextRequest) {
 
     for (const phoneNumber of projectData.alertConfig.phoneNumbers) {
       try {
-        const response = await fetch('https://textbelt.com/text', {
-          method: 'POST',
+        const response = await fetch("https://textbelt.com/text", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            "Content-Type": "application/x-www-form-urlencoded",
           },
           body: new URLSearchParams({
             phone: phoneNumber,
@@ -128,26 +113,29 @@ export async function POST(request: NextRequest) {
         results.push({
           phoneNumber,
           success: false,
-          error: error instanceof Error ? error.message : 'Network error',
+          error: error instanceof Error ? error.message : "Network error",
         });
       }
     }
 
     // Create a test alert record
-    await adminDb.collection('alerts').add({
+    await adminDb.collection("alerts").add({
       projectId: projectId,
-      status: results.some(r => r.success) ? 'sent' : 'failed',
-      notificationType: 'text',
-      message: 'Test Alert',
+      status: results.some((r) => r.success) ? "sent" : "failed",
+      notificationType: "text",
+      message: "Test Alert",
       eventIds: [],
       eventCount: 0,
       windowStart: admin.firestore.Timestamp.now(),
       windowEnd: admin.firestore.Timestamp.now(),
       createdAt: admin.firestore.Timestamp.now(),
       sentAt: admin.firestore.Timestamp.now(),
-      sentTo: results.filter(r => r.success).map(r => r.phoneNumber),
-      error: results.some(r => !r.success) 
-        ? `Failed: ${results.filter(r => !r.success).map(r => `${r.phoneNumber}: ${r.error}`).join(', ')}`
+      sentTo: results.filter((r) => r.success).map((r) => r.phoneNumber),
+      error: results.some((r) => !r.success)
+        ? `Failed: ${results
+            .filter((r) => !r.success)
+            .map((r) => `${r.phoneNumber}: ${r.error}`)
+            .join(", ")}`
         : null,
     });
 
@@ -156,10 +144,7 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error('[TEST ALERT API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("[TEST ALERT API] Error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

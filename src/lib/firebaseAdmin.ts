@@ -11,8 +11,5 @@ export default admin;
 const adminDb = admin.firestore();
 adminDb.settings({
   ignoreUndefinedProperties: true,
-})
-export {
-  adminDb
-}
-
+});
+export { adminDb };
