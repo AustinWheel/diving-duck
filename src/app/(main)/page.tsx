@@ -12,7 +12,6 @@ import {
   Card,
   Icon,
   CodeBlock,
-  Particle,
 } from "@once-ui-system/core";
 import { Navbar } from "@/components/Navbar";
 import { VideoBackground } from "@/components/VideoBackground";
@@ -20,7 +19,7 @@ import PublicEventCounter from "@/components/PublicEventCounter";
 
 export default function Home() {
   return (
-    <>
+    <div style={{ minHeight: "100vh", overflow: "visible" }}>
       <Navbar />
 
       {/* Hero Section with Video Background */}
@@ -28,6 +27,7 @@ export default function Home() {
         fillWidth
         style={{
           minHeight: "100vh",
+          height: "100vh",
           position: "relative",
           display: "flex",
           alignItems: "center",
@@ -60,7 +60,7 @@ export default function Home() {
           >
             Instant awareness,
             <br />
-            no extra noice.
+            no extra noise.
           </Heading>
 
           <Text
@@ -139,196 +139,381 @@ export default function Home() {
         </Column>
       </Column>
 
-      {/* Logs Example Section */}
-      <Column
-        fillWidth
-        center
-        padding="xl"
-        style={{
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <Particle
-          fill
-          interactive
-          speed={2.5}
-          interactionRadius={3}
-          density={150}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            opacity: 0.6,
-            height: "100%",
-          }}
-        />
-
+      {/* Hero Content Section */}
+      <Column fillWidth style={{ position: "relative", overflow: "hidden" }}>
+        {/* How It Works Section */}
         <Column
-          maxWidth="xl"
-          horizontal="center"
-          gap="l"
-          align="center"
-          style={{ position: "relative", zIndex: 1 }}
+          fillWidth
+          padding="64"
+          gap="48"
+          style={{
+            background: "linear-gradient(to bottom, rgba(255, 107, 53, 0.05) 0%, transparent 100%)",
+          }}
         >
-          <Heading variant="display-strong-m" align="center">
-            Real-time visibility into your application
-          </Heading>
+          <Column maxWidth="xl" horizontal="center" gap="24" style={{ margin: "0 auto", width: "100%" }}>
+            <Heading variant="display-strong-l" align="center">
+              Dead simple monitoring
+            </Heading>
+            <Text 
+              variant="body-default-l" 
+              align="center" 
+              onBackground="neutral-weak"
+              style={{ maxWidth: "600px", margin: "0 auto" }}
+            >
+              Replace complex logging setups with a single line of code. Get alerts when it matters.
+            </Text>
 
-          <Text
-            variant="body-default-l"
-            align="center"
-            onBackground="neutral-weak"
-            style={{ maxWidth: "600px" }}
-          >
-            Monitor events as they happen. Filter by type, search messages, and track user
-            activity—all in one unified dashboard.
-          </Text>
+            {/* Steps */}
+            <Flex gap="32" wrap horizontal="center" style={{ marginTop: "48px" }}>
+              <Column gap="16" horizontal="center" style={{ maxWidth: "300px" }}>
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "12px",
+                    backgroundColor: "var(--brand-background-medium)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text variant="heading-strong-l" onBackground="brand-strong">1</Text>
+                </div>
+                <Text variant="heading-strong-m">Install</Text>
+                <Text variant="body-default-m" onBackground="neutral-weak" align="center">
+                  Add our lightweight npm package to your project in seconds
+                </Text>
+              </Column>
 
-          <div
-            style={{
-              position: "relative",
-              marginTop: "40px",
-              marginBottom: "40px",
-              maxWidth: "100%",
-              width: "fit-content",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                inset: "-60px",
-                background:
-                  "radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 50%)",
-                filter: "blur(60px)",
-                zIndex: -1,
-              }}
-            />
-            <img
-              src="/images/logs-example.png"
-              alt="Event logs dashboard example"
-              style={{
-                width: "100%",
-                maxWidth: "1000px",
-                height: "auto",
-                borderRadius: "var(--radius-l)",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-                border: "1px solid rgba(255,255,255,0.1)",
-              }}
-            />
-          </div>
+              <Column gap="16" horizontal="center" style={{ maxWidth: "300px" }}>
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "12px",
+                    backgroundColor: "var(--brand-background-medium)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text variant="heading-strong-l" onBackground="brand-strong">2</Text>
+                </div>
+                <Text variant="heading-strong-m">Drop in code</Text>
+                <Text variant="body-default-m" onBackground="neutral-weak" align="center">
+                  Use console.text() anywhere you need visibility
+                </Text>
+              </Column>
 
-          <Text variant="body-default-m" align="center" onBackground="neutral-weak">
-            From development to production, never miss a critical event
-          </Text>
+              <Column gap="16" horizontal="center" style={{ maxWidth: "300px" }}>
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "12px",
+                    backgroundColor: "var(--brand-background-medium)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text variant="heading-strong-l" onBackground="brand-strong">3</Text>
+                </div>
+                <Text variant="heading-strong-m">Get alerted</Text>
+                <Text variant="body-default-m" onBackground="neutral-weak" align="center">
+                  Receive SMS alerts when thresholds are triggered
+                </Text>
+              </Column>
+            </Flex>
+          </Column>
         </Column>
-      </Column>
 
-      {/* Rest of the page content */}
-      <Column fillWidth padding="l" id="features">
-        {/* Code Example */}
-        <Column fillWidth center maxWidth="xl" gap="xl" marginY="xl">
-          <Card
-            fillWidth
-            maxWidth="l"
-            padding="l"
-            background="neutral-alpha-weak"
-            border="neutral-alpha-medium"
-            style={{
-              backdropFilter: "blur(20px)",
-              borderRadius: "var(--radius-l)",
-              backgroundColor: "rgba(20, 20, 20, 0.8)",
-            }}
-          >
+        {/* Code Example Section */}
+        <Column fillWidth padding="64" style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}>
+          <Column maxWidth="xl" horizontal="center" gap="48" style={{ margin: "0 auto", width: "100%" }}>
+            <Column gap="24" align="center">
+              <Heading variant="display-strong-l" align="center">
+                Your code, enhanced
+              </Heading>
+              <Text 
+                variant="body-default-l" 
+                align="center" 
+                onBackground="neutral-weak"
+                style={{ maxWidth: "600px" }}
+              >
+                Works with your existing console methods. Zero configuration required.
+              </Text>
+            </Column>
+
             <CodeBlock
+              copyButton={true}
               codes={[
                 {
-                  label: "Quick Start",
+                  code: `// Critical alerts
+console.text('Payment failed for premium user', { 
+  userId: user.id, 
+  amount: 99.99 
+});
+
+// Track errors with context
+console.error('Database connection lost', {
+  retries: 3,
+  lastError: error.message
+});
+
+// Monitor performance
+console.warn('Slow API response', {
+  endpoint: '/api/users',
+  duration: '2.5s'
+});`,
                   language: "javascript",
-                  code: `// Install the SDK
-npm install console-warden
-
-// Add to your code
-import { setupWarden } from 'console-warden';
-setupWarden('prod_your_api_key');
-
-// Send alerts anywhere
-try {
-  await processPayment(order);
-} catch (error) {
-  console.text('Payment failed', { 
-    userId: user.id,
-    error: error.message 
-  });
-}`,
-                },
+                  label: "JavaScript",
+                }
               ]}
-              copyButton
-              compact
-              style={{ backgroundColor: "transparent" }}
             />
-          </Card>
+          </Column>
         </Column>
 
         {/* Features Grid */}
-        <Column fillWidth maxWidth="xl" gap="xl" marginY="xl">
-          <Heading variant="display-strong-l" align="center">
-            Built for speed and simplicity
-          </Heading>
+        <Column fillWidth padding="64" gap="48">
+          <Column maxWidth="xl" horizontal="center" gap="48" style={{ margin: "0 auto", width: "100%" }}>
+            <Heading variant="display-strong-l" align="center">
+              Everything you need, nothing you don't
+            </Heading>
 
-          <Flex gap="l" wrap fillWidth>
-            <Card
-              flex="1"
-              minWidth="280"
-              padding="l"
-              background="surface"
-              border="neutral-alpha-weak"
-            >
-              <Icon name="zap" size="l" onBackground="brand-medium" marginBottom="m" />
-              <Heading variant="heading-strong-m" marginBottom="s">
-                2-minute setup
-              </Heading>
-              <Text variant="body-default-m" onBackground="neutral-weak">
-                Install our npm package, add your API key, and start monitoring immediately
-              </Text>
-            </Card>
+            <Flex gap="24" wrap fillWidth center>
+              <Column
+                fillWidth
+                center
+                padding="32"
+                background="surface"
+                border="neutral-alpha-weak"
+                radius="m"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  backdropFilter: "blur(20px)",
+                }}
+              >
+                <Icon name="bell" size="l" color="var(--brand-on-background-strong)" marginBottom="16" />
+                <Text variant="heading-strong-m" marginBottom="8">
+                  Smart Alerts
+                </Text>
+                <Text variant="body-default-m" onBackground="neutral-weak">
+                  Set thresholds to get notified only when patterns emerge, not on every single error
+                </Text>
+              </Column>
 
-            <Card
-              flex="1"
-              minWidth="280"
-              padding="l"
-              background="surface"
-              border="neutral-alpha-weak"
-            >
-              <Icon name="shield" size="l" onBackground="accent-medium" marginBottom="m" />
-              <Heading variant="heading-strong-m" marginBottom="s">
-                Test vs Production
-              </Heading>
-              <Text variant="body-default-m" onBackground="neutral-weak">
-                Separate API keys for development and production environments
-              </Text>
-            </Card>
+              <Column
+                center
+                fillWidth
+                padding="32"
+                background="surface"
+                border="neutral-alpha-weak"
+                radius="m"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  backdropFilter: "blur(20px)",
+                }}
+              >
+                <Icon name="activity" size="l" color="var(--success-on-background-strong)" marginBottom="16" />
+                <Heading variant="heading-strong-m" marginBottom="8">
+                  Real-time Dashboard
+                </Heading>
+                <Text variant="body-default-m" onBackground="neutral-weak">
+                  See all your events in one place with powerful filtering and search capabilities
+                </Text>
+              </Column>
+              
+              <Column
+                center
+                fillWidth
+                padding="32"
+                background="surface"
+                border="neutral-alpha-weak"
+                radius="m"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  backdropFilter: "blur(20px)",
+                }}
+              >
+                <Icon name="userPlus" size="l" color="var(--info-on-background-strong)" marginBottom="16" />
+                <Text variant="heading-strong-m" marginBottom="8">
+                  Team Collaboration
+                </Text>
+                <Text variant="body-default-m" onBackground="neutral-weak">
+                  Invite team members to share visibility and respond to issues together
+                </Text>
+              </Column>
 
-            <Card
-              flex="1"
-              minWidth="280"
-              padding="l"
+            <Column
+              center
+              padding="32"
               background="surface"
+              fillWidth
               border="neutral-alpha-weak"
+              radius="m"
+              style={{
+                backgroundColor: "rgba(255, 255, 255, 0.02)",
+                backdropFilter: "blur(20px)",
+              }}
             >
-              <Icon name="gauge" size="l" onBackground="success-medium" marginBottom="m" />
-              <Heading variant="heading-strong-m" marginBottom="s">
-                Smart thresholds
-              </Heading>
-              <Text variant="body-default-m" onBackground="neutral-weak">
-                Configure alert frequency to avoid notification fatigue
-              </Text>
-            </Card>
+                <Icon name="shield" size="l" color="var(--warning-on-background-strong)" marginBottom="16" />
+                <Heading variant="heading-strong-m" marginBottom="8">
+                  Secure by Design
+                </Heading>
+                <Text variant="body-default-m" onBackground="neutral-weak">
+                  Domain whitelisting, separate test/production environments
+                </Text>
+              </Column>
+
+              <Column
+                center
+                fillWidth
+                padding="32"
+                background="surface"
+                border="neutral-alpha-weak"
+                radius="m"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  backdropFilter: "blur(20px)",
+                }}
+              >
+                <Icon name="zap" size="l" color="var(--brand-on-background-strong)" marginBottom="16" />
+                <Heading variant="heading-strong-m" marginBottom="8">
+                  Lightning Fast
+                </Heading>
+                <Text variant="body-default-m" onBackground="neutral-weak">
+                  Sub-second event ingestion for minimal latency
+                </Text>
+              </Column>
+
+              <Column
+                center
+                fillWidth
+                padding="32"
+                background="surface"
+                border="neutral-alpha-weak"
+                radius="m"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  backdropFilter: "blur(20px)",
+                }}
+              >
+                <Icon name="gauge" size="l" color="var(--danger-on-background-strong)" marginBottom="16" />
+                <Heading variant="heading-strong-m" marginBottom="8">
+                  Zero Config
+                </Heading>
+                <Text variant="body-default-m" onBackground="neutral-weak">
+                  Works out of the box with sensible defaults. Customize when you need to
+                </Text>
+              </Column>
+            </Flex>
+          </Column>
+        </Column>
+
+        {/* CTA Section */}
+        <Column 
+          fillWidth 
+          padding="64" 
+          style={{
+            background: "linear-gradient(to top, rgba(255, 107, 53, 0.05) 0%, transparent 100%)",
+          }}
+        >
+          <Column 
+            maxWidth="m" 
+            horizontal="center" 
+            gap="32" 
+            align="center"
+            style={{ margin: "0 auto" }}
+          >
+            <Heading variant="display-strong-l" align="center">
+              Start monitoring in minutes
+            </Heading>
+            <Text 
+              variant="body-default-l" 
+              align="center" 
+              onBackground="neutral-weak"
+              style={{ maxWidth: "500px" }}
+            >
+              Join developers who've simplified their monitoring setup and never miss critical events
+            </Text>
+            <Flex gap="16" wrap horizontal="center">
+              <Button
+                href="/auth/signin"
+                variant="primary"
+                size="l"
+                style={{
+                  backgroundColor: "var(--brand-background-strong)",
+                  color: "var(--brand-on-background-strong)",
+                  padding: "14px 32px",
+                  fontWeight: 600,
+                }}
+              >
+                Get Started Free
+              </Button>
+              <Button
+                href="/docs"
+                variant="secondary"
+                size="l"
+                style={{
+                  padding: "14px 32px",
+                }}
+              >
+                View Documentation
+              </Button>
+            </Flex>
+          </Column>
+        </Column>
+
+        {/* Footer */}
+        <Column 
+          fillWidth 
+          padding="32"
+          style={{
+            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+          }}
+        >
+          <Flex 
+            fillWidth 
+            horizontal="space-between" 
+            vertical="center"
+            wrap
+            gap="24"
+            style={{ maxWidth: "1200px", margin: "0 auto" }}
+          >
+            <Text variant="body-default-s" onBackground="neutral-weak">
+              © 2024 Warden. All rights reserved.
+            </Text>
+            <Flex gap="24" wrap>
+              <Button
+                href="/privacy"
+                variant="tertiary"
+                size="s"
+                style={{ color: "var(--neutral-on-background-weak)" }}
+              >
+                Privacy
+              </Button>
+              <Button
+                href="/terms"
+                variant="tertiary"
+                size="s"
+                style={{ color: "var(--neutral-on-background-weak)" }}
+              >
+                Terms
+              </Button>
+              <Button
+                href="/changelog"
+                variant="tertiary"
+                size="s"
+                style={{ color: "var(--neutral-on-background-weak)" }}
+              >
+                Changelog
+              </Button>
+            </Flex>
           </Flex>
         </Column>
       </Column>
-    </>
+    </div>
   );
 }

@@ -212,3 +212,12 @@ export interface FeatureRequest {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Newsletter subscription document in 'newsletterSubscriptions' collection
+export interface NewsletterSubscription {
+  id: string;
+  email: string;
+  subscribedAt: Date;
+  source: string; // Where they subscribed from (e.g., "blog", "footer", "popup")
+  active: boolean; // For unsubscribe functionality
+}

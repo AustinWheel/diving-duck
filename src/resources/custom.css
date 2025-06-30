@@ -81,6 +81,25 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Fix scrolling issue on main page */
+html, body {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+/* Ensure Flex container doesn't block scrolling */
+.flex[data-ciu2j2k] {
+  height: auto !important;
+  min-height: 100vh;
+}
+
+/* Fix column heights */
+.column {
+  height: auto !important;
+}
+
 /* Mobile responsive text */
 .mobile-show {
   display: none;
