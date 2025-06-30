@@ -1,13 +1,21 @@
 #!/usr/bin/env tsx
 
 import * as admin from 'firebase-admin';
-import { readFileSync } from 'fs';
+import { config } from 'dotenv';
 import { join } from 'path';
+
+// Load environment variables from .env.local
+config({ path: join(__dirname, '../.env.local') });
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  const serviceAccountPath = join(__dirname, '../service-account.json');
-  const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+  if (!process.env.FIREBASE_ADMIN_KEY) {
+    console.error('❌ Error: FIREBASE_ADMIN_KEY not found in environment variables');
+    console.error('Make sure .env.local exists and contains FIREBASE_ADMIN_KEY');
+    process.exit(1);
+  }
+  
+  const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
   
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

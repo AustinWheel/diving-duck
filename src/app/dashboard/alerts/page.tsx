@@ -15,7 +15,7 @@ import {
 } from "@once-ui-system/core";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
-import { AlertRule, MessageAlertRule, NotificationType } from "@/types/database";
+import { AlertRule, MessageAlertRule, NotificationType, LogType } from "@/types/database";
 import { useLimitError } from "@/hooks/useLimitError";
 
 interface AlertConfig {
@@ -115,6 +115,7 @@ export default function AlertsPage() {
             enabled: rule.globalLimit?.enabled ?? false,
             windowMinutes: rule.globalLimit?.windowMinutes ?? 60,
             maxAlerts: rule.globalLimit?.maxAlerts ?? 10,
+            logTypes: rule.globalLimit?.logTypes || undefined, // Preserve existing logTypes
           },
           messageRules: rule.messageRules || [],
           notificationType: rule.notificationType || "text",
@@ -630,47 +631,99 @@ export default function AlertsPage() {
                           </Column>
                         </Flex>
                         {rule.globalLimit?.enabled && (
-                          <Flex gap="12" vertical="center" wrap>
-                            <Text variant="body-default-s" onBackground="neutral-weak">
-                              Trigger alert after
-                            </Text>
-                            <NumberInput
-                              id="event-count"
-                              label="Event Count"
-                              value={rule.globalLimit?.maxAlerts || 10}
-                              onChange={(value) =>
-                                updateAlertRule(ruleIndex, {
-                                  ...rule,
-                                  globalLimit: { ...rule.globalLimit, maxAlerts: value || 1 },
-                                })
-                              }
-                              min={1}
-                              max={1000}
-                              height="s"
-                              style={{ width: "180px" }}
-                            />
-                            <Text variant="body-default-s" onBackground="neutral-weak">
-                              events within
-                            </Text>
-                            <NumberInput
-                              id="window-minutes"
-                              label="Window Minutes"
-                              value={rule.globalLimit?.windowMinutes || 60}
-                              onChange={(value) =>
-                                updateAlertRule(ruleIndex, {
-                                  ...rule,
-                                  globalLimit: { ...rule.globalLimit, windowMinutes: value || 1 },
-                                })
-                              }
-                              min={1}
-                              max={1440}
-                              height="s"
-                              style={{ width: "180px" }}
-                            />
-                            <Text variant="body-default-s" onBackground="neutral-weak">
-                              minutes
-                            </Text>
-                          </Flex>
+                          <Column gap="12">
+                            <Flex gap="12" vertical="center" wrap>
+                              <Text variant="body-default-s" onBackground="neutral-weak">
+                                Trigger alert after
+                              </Text>
+                              <NumberInput
+                                id="event-count"
+                                label="Event Count"
+                                value={rule.globalLimit?.maxAlerts || 10}
+                                onChange={(value) =>
+                                  updateAlertRule(ruleIndex, {
+                                    ...rule,
+                                    globalLimit: { ...rule.globalLimit, maxAlerts: value || 1 },
+                                  })
+                                }
+                                min={1}
+                                max={1000}
+                                height="s"
+                                style={{ width: "180px" }}
+                              />
+                              <Text variant="body-default-s" onBackground="neutral-weak">
+                                events within
+                              </Text>
+                              <NumberInput
+                                id="window-minutes"
+                                label="Window Minutes"
+                                value={rule.globalLimit?.windowMinutes || 60}
+                                onChange={(value) =>
+                                  updateAlertRule(ruleIndex, {
+                                    ...rule,
+                                    globalLimit: { ...rule.globalLimit, windowMinutes: value || 1 },
+                                  })
+                                }
+                                min={1}
+                                max={1440}
+                                height="s"
+                                style={{ width: "180px" }}
+                              />
+                              <Text variant="body-default-s" onBackground="neutral-weak">
+                                minutes
+                              </Text>
+                            </Flex>
+                            
+                            {/* Log Type Filter */}
+                            <Column gap="8">
+                              <Text variant="body-default-xs" onBackground="neutral-weak">
+                                Filter by log types (leave empty for all)
+                              </Text>
+                              <Flex gap="8" wrap>
+                                {(["text", "error", "warn", "log" ] as LogType[]).map((logType) => {
+                                  const isSelected = rule.globalLimit?.logTypes?.includes(logType) ?? false;
+                                  const color = {
+                                    error: "#ef4444",
+                                    warn: "#f59e0b",
+                                    callText: "#3b82f6",
+                                    call: "#6366f1",
+                                    log: "#10b981",
+                                    text: "#6b7280",
+                                  }[logType];
+
+                                  return (
+                                    <Button
+                                      key={logType}
+                                      onClick={() => {
+                                        const currentTypes = rule.globalLimit?.logTypes || [];
+                                        const newTypes = isSelected
+                                          ? currentTypes.filter((t) => t !== logType)
+                                          : [...currentTypes, logType];
+                                        updateAlertRule(ruleIndex, {
+                                          ...rule,
+                                          globalLimit: { ...rule.globalLimit, logTypes: newTypes.length > 0 ? newTypes : undefined },
+                                        });
+                                      }}
+                                      variant="tertiary"
+                                      size="s"
+                                      style={{
+                                        backgroundColor: isSelected ? `${color}20` : "rgba(255, 255, 255, 0.05)",
+                                        border: `1px solid ${isSelected ? color : "rgba(255, 255, 255, 0.1)"}`,
+                                        color: isSelected ? color : "var(--neutral-on-background-weak)",
+                                        fontWeight: isSelected ? 600 : 400,
+                                        textTransform: "uppercase",
+                                        fontSize: "11px",
+                                        padding: "4px 12px",
+                                        transition: "all 0.2s ease",
+                                      }}
+                                    >
+                                      {logType}
+                                    </Button>
+                                  );
+                                })}
+                              </Flex>
+                            </Column>
+                          </Column>
                         )}
                       </Column>
 
@@ -767,6 +820,56 @@ export default function AlertsPage() {
                                       minutes
                                     </Text>
                                   </Flex>
+                                  
+                                  {/* Log Type Filter for Message Rule */}
+                                  <Column gap="8">
+                                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                                      Filter by log types (optional)
+                                    </Text>
+                                    <Flex gap="8" wrap>
+                                      {(["text", "error", "warn", "log", "call", "callText"] as LogType[]).map((logType) => {
+                                        const isSelected = messageRule.logTypes?.includes(logType) ?? false;
+                                        const color = {
+                                          error: "#ef4444",
+                                          warn: "#f59e0b",
+                                          callText: "#3b82f6",
+                                          call: "#6366f1",
+                                          log: "#10b981",
+                                          text: "#6b7280",
+                                        }[logType];
+
+                                        return (
+                                          <Button
+                                            key={logType}
+                                            onClick={() => {
+                                              const currentTypes = messageRule.logTypes || [];
+                                              const newTypes = isSelected
+                                                ? currentTypes.filter((t) => t !== logType)
+                                                : [...currentTypes, logType];
+                                              updateMessageRule(ruleIndex, messageIndex, {
+                                                ...messageRule,
+                                                logTypes: newTypes.length > 0 ? newTypes : undefined,
+                                              });
+                                            }}
+                                            variant="tertiary"
+                                            size="s"
+                                            style={{
+                                              backgroundColor: isSelected ? `${color}20` : "rgba(255, 255, 255, 0.05)",
+                                              border: `1px solid ${isSelected ? color : "rgba(255, 255, 255, 0.1)"}`,
+                                              color: isSelected ? color : "var(--neutral-on-background-weak)",
+                                              fontWeight: isSelected ? 600 : 400,
+                                              textTransform: "uppercase",
+                                              fontSize: "11px",
+                                              padding: "4px 12px",
+                                              transition: "all 0.2s ease",
+                                            }}
+                                          >
+                                            {logType}
+                                          </Button>
+                                        );
+                                      })}
+                                    </Flex>
+                                  </Column>
                                 </Column>
                               </div>
                             ))}
@@ -789,6 +892,11 @@ export default function AlertsPage() {
                           ? `Triggers after ${rule.globalLimit?.maxAlerts || 10} events within ${rule.globalLimit?.windowMinutes || 60} minutes`
                           : "No global threshold set"}
                       </Text>
+                      {rule.globalLimit?.enabled && rule.globalLimit?.logTypes && rule.globalLimit.logTypes.length > 0 && (
+                        <Text variant="body-default-xs" onBackground="neutral-weak">
+                          Log types: {rule.globalLimit.logTypes.join(", ")}
+                        </Text>
+                      )}
                       {rule.messageRules && rule.messageRules.length > 0 && (
                         <Text variant="body-default-s" onBackground="neutral-weak">
                           {rule.messageRules.length} message-specific rule

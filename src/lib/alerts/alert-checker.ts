@@ -59,10 +59,12 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
       if (bucketDoc.exists) {
         const bucketData = bucketDoc.data() as any;
         if (bucketData.events) {
-          // Filter events within the exact time window
+          // Filter events within the exact time window and matching log types
           const eventsInWindow = bucketData.events.filter((e: any) => {
             const timestamp = e.timestamp?.toDate ? e.timestamp.toDate() : new Date(e.timestamp);
-            return timestamp >= windowStart && timestamp <= now;
+            const timeMatch = timestamp >= windowStart && timestamp <= now;
+            const typeMatch = !rule.globalLimit.logTypes?.length || rule.globalLimit.logTypes.includes(e.type);
+            return timeMatch && typeMatch;
           });
           eventCount += eventsInWindow.length;
 

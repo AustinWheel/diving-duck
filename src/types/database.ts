@@ -36,6 +36,7 @@ export interface GlobalAlertLimit {
   enabled: boolean;
   windowMinutes: number; // Time window for event counting
   maxAlerts: number; // Number of events within window that triggers an alert
+  logTypes?: LogType[]; // Optional: specific log types to match (default: all)
 }
 
 export interface MessageAlertRule {
