@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     // Check for Authorization header
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("Missing or invalide authorization header");
       return NextResponse.json(
         { error: "Missing or invalid authorization header" },
         { status: 400 },
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     if (!token) {
+      console.error("Missing API key");
       return NextResponse.json({ error: "Missing API key" }, { status: 400 });
     }
 
@@ -86,11 +88,13 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch (error) {
+      console.error("Invalid JSON body");
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
     // Validate required fields
     if (!body.message) {
+      console.error("Missing required field: message")
       return NextResponse.json({ error: "Missing required field: message" }, { status: 400 });
     }
 
@@ -146,6 +150,7 @@ export async function POST(request: NextRequest) {
     const validLogTypes: LogType[] = ["text", "call", "callText", "log", "warn", "error"];
     const logType = body.type || "text";
     if (!validLogTypes.includes(logType)) {
+      console.error("Invalid log type");
       return NextResponse.json({ error: "Invalid log type" }, { status: 400 });
     }
 
