@@ -27,6 +27,8 @@ import {
   HiOutlineExclamationTriangle,
   HiOutlinePhone,
   HiOutlinePlus,
+  HiOutlineChevronUp,
+  HiOutlineLightBulb,
 } from "react-icons/hi2";
 
 import { Activity } from "lucide-react";
@@ -59,6 +61,8 @@ export const iconLibrary: Record<string, IconType> = {
   alert: HiOutlineExclamationTriangle,
   phone: HiOutlinePhone,
   plus: HiOutlinePlus,
+  chevronUp: HiOutlineChevronUp,
+  lightbulb: HiOutlineLightBulb,
   activity: Activity as unknown as IconType,
 };
 

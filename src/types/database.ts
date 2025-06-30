@@ -194,3 +194,21 @@ export interface Invite {
   acceptedBy?: string; // User ID
   updatedAt?: Date;
 }
+
+// Feature request status
+export type FeatureRequestStatus = "submitted" | "in_progress" | "implemented" | "denied";
+
+// Feature request document in 'featureRequests' collection
+export interface FeatureRequest {
+  id: string;
+  title: string;
+  description: string;
+  status: FeatureRequestStatus;
+  createdBy: string; // User ID
+  createdByEmail: string; // User email for display
+  createdByName?: string; // User display name for display
+  upvotedBy: string[]; // Array of User IDs who upvoted
+  upvoteCount: number; // Cached count for performance
+  createdAt: Date;
+  updatedAt: Date;
+}

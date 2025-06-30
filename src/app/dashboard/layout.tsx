@@ -26,6 +26,7 @@ const navigationItems = [
   { icon: "key", label: "API Keys", href: "/dashboard/keys" },
   { icon: "list", label: "Event Logs", href: "/dashboard/logs" },
   { icon: "bell", label: "Alerts", href: "/dashboard/alerts" },
+  { icon: "lightbulb", label: "Features", href: "/features" },
   { icon: "settings", label: "Settings", href: "/dashboard/settings" },
   { icon: "user", label: "Team", href: "/dashboard/team" },
 ];

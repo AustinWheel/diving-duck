@@ -7,7 +7,7 @@ export function VideoBackground() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.75; // Slightly slower for more dramatic effect
+      videoRef.current.playbackRate = .8; // Half speed for more dramatic effect
     }
   }, []);
 

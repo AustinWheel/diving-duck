@@ -119,6 +119,14 @@ export function Navbar() {
             style={{ position: "absolute", left: "50%", transform: "translateX(-50%)" }}
           >
             <Button
+              href="/features"
+              variant="tertiary"
+              size="s"
+              style={{ color: "var(--neutral-on-background-weak)" }}
+            >
+              Features
+            </Button>
+            <Button
               href="/docs"
               variant="tertiary"
               size="s"
