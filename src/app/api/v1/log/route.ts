@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import admin from "@/lib/firebaseAdmin";
+import admin, { adminDb } from "@/lib/firebaseAdmin";
 import { LogEvent, ApiKey, LogType, BucketedEvents, Project } from "@/types/database";
 import { checkAlertsForEvent } from "@/lib/alerts/alert-checker";
 import { canSendEvent, incrementDailyEvents, getSubscriptionLimits } from "@/lib/subscription";
 import { calculateBucketId, calculateBucketTimes } from "@/lib/bucketHelpers";
+
+// Update public stats document
+async function updatePublicStats() {
+  try {
+    const statsRef = adminDb.collection("public").doc("stats");
+    
+    // Simply increment the total events count
+    // FieldValue.increment handles concurrency and creates the field if it doesn't exist
+    await statsRef.set({
+      totalEvents: admin.firestore.FieldValue.increment(1),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    // Log error but don't fail the request
+    console.error("[LOG API] Error updating public stats:", error);
+  }
+}
 
 interface LogRequestBody {
   type?: LogType; // Optional, defaults to 'text'
@@ -37,8 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate API key exists in database
-    const db = admin.firestore();
-    const keysRef = db.collection("keys");
+    const keysRef = adminDb.collection("keys");
     const keySnapshot = await keysRef.where("key", "==", token).limit(1).get();
 
     if (keySnapshot.empty) {
@@ -83,6 +99,49 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
     const userAgent = request.headers.get("user-agent") || undefined;
 
+    // Check domain whitelist for production keys
+    if (apiKey.type === "prod" && apiKey.domain) {
+      const origin = request.headers.get("origin");
+      const referer = request.headers.get("referer");
+
+      // Check both origin and referer headers
+      const requestDomain = origin || referer;
+
+      if (!requestDomain) {
+        return NextResponse.json(
+          { error: "Access denied: No origin header found" },
+          { status: 403 },
+        );
+      }
+
+      // Parse the domain from the key
+      let allowedDomain;
+      try {
+        const url = new URL(apiKey.domain);
+        allowedDomain = url.origin; // This gives us protocol + hostname + port
+      } catch (error) {
+        console.error("Invalid domain in API key:", apiKey.domain);
+        return NextResponse.json({ error: "Invalid API key configuration" }, { status: 500 });
+      }
+
+      // Parse the request domain
+      let requestOrigin;
+      try {
+        const url = new URL(requestDomain);
+        requestOrigin = url.origin;
+      } catch (error) {
+        return NextResponse.json({ error: "Invalid origin header" }, { status: 403 });
+      }
+
+      // Compare origins
+      if (requestOrigin !== allowedDomain) {
+        return NextResponse.json(
+          { error: "Access denied: Domain not whitelisted", domain: requestOrigin },
+          { status: 403 },
+        );
+      }
+    }
+
     // Validate log type if provided
     const validLogTypes: LogType[] = ["text", "call", "callText", "log", "warn", "error"];
     const logType = body.type || "text";
@@ -97,9 +156,9 @@ export async function POST(request: NextRequest) {
       resetTime.setUTCDate(resetTime.getUTCDate() + 1);
       resetTime.setUTCHours(0, 0, 0, 0);
       const hoursUntilReset = Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60 * 60));
-      
+
       return NextResponse.json(
-        { 
+        {
           error: "Daily event limit exceeded",
           message: `You've reached your daily limit of ${eventCheck.limit} events. You've sent ${eventCheck.current} events today.`,
           suggestion: "Upgrade to Pro for 50,000 events per day, or wait for the daily reset.",
@@ -108,22 +167,23 @@ export async function POST(request: NextRequest) {
             current: eventCheck.current,
             resetAt: resetTime.toISOString(),
             hoursUntilReset,
-            tier: "basic" // We can get this from project if needed
-          }
+            tier: "basic", // We can get this from project if needed
+          },
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
     // Get project details for bucket configuration
-    const projectDoc = await db.collection("projects").doc(apiKey.projectId).get();
+    const projectDoc = await adminDb.collection("projects").doc(apiKey.projectId).get();
     if (!projectDoc.exists) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
     const project = projectDoc.data() as Project;
-    
+
     // Get bucket configuration
-    const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+    const limits =
+      project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
     const bucketMinutes = limits.eventBucketMinutes;
 
     // Create event data
@@ -143,16 +203,19 @@ export async function POST(request: NextRequest) {
 
     // Calculate bucket ID and times
     const bucketId = calculateBucketId(apiKey.projectId, eventTimestamp, bucketMinutes);
-    const { start: bucketStart, end: bucketEnd } = calculateBucketTimes(eventTimestamp, bucketMinutes);
+    const { start: bucketStart, end: bucketEnd } = calculateBucketTimes(
+      eventTimestamp,
+      bucketMinutes,
+    );
 
     let eventId: string;
-    
+
     try {
       // Store event in bucket using transaction
-      await db.runTransaction(async (transaction) => {
-        const bucketRef = db.collection("bucketedEvents").doc(bucketId);
+      await adminDb.runTransaction(async (transaction) => {
+        const bucketRef = adminDb.collection("bucketedEvents").doc(bucketId);
         const bucketDoc = await transaction.get(bucketRef);
-        
+
         if (!bucketDoc.exists) {
           // Create new bucket
           const newBucket: BucketedEvents = {
@@ -160,49 +223,57 @@ export async function POST(request: NextRequest) {
             projectId: apiKey.projectId,
             bucketStart: bucketStart,
             bucketEnd: bucketEnd,
-            events: [{
-              ...eventData,
-              timestamp: eventData.timestamp
-            }],
+            events: [
+              {
+                ...eventData,
+                timestamp: eventData.timestamp,
+              },
+            ],
             eventCount: 1,
-            lastUpdated: new Date()
+            lastUpdated: new Date(),
           };
-          
+
           transaction.set(bucketRef, {
             ...newBucket,
             bucketStart: admin.firestore.Timestamp.fromDate(bucketStart),
             bucketEnd: admin.firestore.Timestamp.fromDate(bucketEnd),
-            events: [{
-              ...eventData,
-              timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp)
-            }],
-            lastUpdated: admin.firestore.Timestamp.now()
+            events: [
+              {
+                ...eventData,
+                timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp),
+              },
+            ],
+            lastUpdated: admin.firestore.Timestamp.now(),
           });
         } else {
           // Append to existing bucket
           const currentData = bucketDoc.data() as any;
-          const updatedEvents = [...currentData.events, {
-            ...eventData,
-            timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp)
-          }];
-          
+          const updatedEvents = [
+            ...currentData.events,
+            {
+              ...eventData,
+              timestamp: admin.firestore.Timestamp.fromDate(eventData.timestamp),
+            },
+          ];
+
           transaction.update(bucketRef, {
             events: updatedEvents,
             eventCount: updatedEvents.length,
-            lastUpdated: admin.firestore.Timestamp.now()
+            lastUpdated: admin.firestore.Timestamp.now(),
           });
         }
-        
+
         // Generate event ID based on bucket ID and event count
         eventId = `${bucketId}_${bucketDoc.exists ? bucketDoc.data()!.eventCount : 0}`;
       });
 
-      // Update last used timestamp for the API key and increment event counter
+      // Update last used timestamp for the API key, increment event counter, and update public stats
       await Promise.all([
         keyDoc.ref.update({
           lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
         }),
-        incrementDailyEvents(apiKey.projectId)
+        incrementDailyEvents(apiKey.projectId),
+        updatePublicStats(),
       ]);
 
       // Check if this event triggers any alerts
@@ -216,24 +287,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: "logged", eventId, bucketId }, { status: 200 });
     } catch (error: any) {
       // Handle document size exceeded error
-      if (error.code === 'failed-precondition' && error.message?.includes('maximum size')) {
-        const tierName = project.subscriptionTier === "pro" ? "Pro" : 
-                        project.subscriptionTier === "enterprise" ? "Enterprise" : "Basic";
-        const upgradeTo = project.subscriptionTier === "basic" ? "Pro for higher event limits" :
-                         project.subscriptionTier === "pro" ? "Enterprise for even higher limits" :
-                         "contact support for custom limits";
-                         
-        return NextResponse.json({
-          error: "Event limit exceeded",
-          message: `You've exceeded the maximum events for this ${bucketMinutes}-minute period.`,
-          suggestion: `Upgrade to ${upgradeTo}.`,
-          details: {
-            tier: project.subscriptionTier || "basic",
-            bucketPeriod: `${bucketMinutes} minutes`
-          }
-        }, { status: 403 });
+      if (error.code === "failed-precondition" && error.message?.includes("maximum size")) {
+        const tierName =
+          project.subscriptionTier === "pro"
+            ? "Pro"
+            : project.subscriptionTier === "enterprise"
+              ? "Enterprise"
+              : "Basic";
+        const upgradeTo =
+          project.subscriptionTier === "basic"
+            ? "Pro for higher event limits"
+            : project.subscriptionTier === "pro"
+              ? "Enterprise for even higher limits"
+              : "contact support for custom limits";
+
+        return NextResponse.json(
+          {
+            error: "Event limit exceeded",
+            message: `You've exceeded the maximum events for this ${bucketMinutes}-minute period.`,
+            suggestion: `Upgrade to ${upgradeTo}.`,
+            details: {
+              tier: project.subscriptionTier || "basic",
+              bucketPeriod: `${bucketMinutes} minutes`,
+            },
+          },
+          { status: 403 },
+        );
       }
-      
+
       throw error;
     }
   } catch (error) {

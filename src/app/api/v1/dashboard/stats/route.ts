@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
       .get();
 
     // Get bucket configuration
-    const limits = projectData.subscriptionLimits || getSubscriptionLimits(projectData.subscriptionTier || "basic");
+    const limits =
+      projectData.subscriptionLimits ||
+      getSubscriptionLimits(projectData.subscriptionTier || "basic");
     const bucketMinutes = limits.eventBucketMinutes;
 
     // Calculate time range for last 24 hours
@@ -76,10 +78,10 @@ export async function GET(request: NextRequest) {
 
     // Query all relevant buckets and sum event counts
     let totalEventCount = 0;
-    const bucketPromises = bucketIds.map(bucketId => 
-      adminDb.collection("bucketedEvents").doc(bucketId).get()
+    const bucketPromises = bucketIds.map((bucketId) =>
+      adminDb.collection("bucketedEvents").doc(bucketId).get(),
     );
-    
+
     const bucketDocs = await Promise.all(bucketPromises);
     for (const bucketDoc of bucketDocs) {
       if (bucketDoc.exists) {

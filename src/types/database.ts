@@ -100,6 +100,7 @@ export interface ApiKey {
   lastUsedAt?: Date;
   isActive: boolean;
   name?: string; // Optional friendly name
+  domain?: string; // Optional domain whitelist for production keys (e.g., "https://warden.sh")
 }
 
 // Log types supported
@@ -126,7 +127,7 @@ export interface BucketedEvents {
   projectId: string;
   bucketStart: Date;
   bucketEnd: Date;
-  events: Omit<LogEvent, 'id'>[]; // Events without individual IDs
+  events: Omit<LogEvent, "id">[]; // Events without individual IDs
   eventCount: number;
   lastUpdated: Date;
 }

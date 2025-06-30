@@ -75,8 +75,10 @@ export default function EventActivityChart({
       dataLength: data.length,
       firstItem: data[0],
       lastItem: data[data.length - 1],
-      hasEvents: data.some(d => d.text > 0 || d.call > 0 || d.callText > 0 || d.log > 0 || d.warn > 0 || d.error > 0),
-      hasAlerts: data.some(d => d.alerts > 0),
+      hasEvents: data.some(
+        (d) => d.text > 0 || d.call > 0 || d.callText > 0 || d.log > 0 || d.warn > 0 || d.error > 0,
+      ),
+      hasAlerts: data.some((d) => d.alerts > 0),
     });
   }, [data]);
 
@@ -231,11 +233,11 @@ export default function EventActivityChart({
           backgroundColor: "rgba(255, 255, 255, 0.02)",
           border: "1px solid rgba(255, 255, 255, 0.08)",
           borderRadius: "12px",
-          padding: "24px",
+          padding: "16px",
         }}
       >
-        <ResponsiveContainer width="100%" height={400}>
-          <AreaChart data={data} margin={{ top: 30, right: 30, left: 0, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={320}>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: 5, bottom: 0 }}>
             <defs>
               {Object.entries(LOG_TYPE_COLORS).map(([type, color]) => (
                 <linearGradient key={type} id={`color${type}`} x1="0" y1="0" x2="0" y2="1">
@@ -255,7 +257,6 @@ export default function EventActivityChart({
             />
             <YAxis stroke="rgba(255, 255, 255, 0.5)" style={{ fontSize: "12px" }} />
             <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ paddingTop: "20px" }} iconType="square" />
 
             <Area
               type="monotone"
@@ -311,13 +312,14 @@ export default function EventActivityChart({
               .filter((item) => item.alerts > 0)
               .map((item, index) => {
                 // Format the alert label with actual timestamps
-                const alertLabel = item.alertDetails && item.alertDetails.length > 0
-                  ? `Alert at ${new Date(item.alertDetails[0].createdAt).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}`
-                  : `${item.alerts} alert${item.alerts > 1 ? 's' : ''}`;
-                
+                const alertLabel =
+                  item.alertDetails && item.alertDetails.length > 0
+                    ? `Alert at ${new Date(item.alertDetails[0].createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : `${item.alerts} alert${item.alerts > 1 ? "s" : ""}`;
+
                 return (
                   <ReferenceLine
                     key={`alert-${index}`}

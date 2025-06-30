@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
         isActive: data.isActive,
         // Only show masked version of the key
         maskedKey: data.key,
+        domain: data.domain || null,
       };
     });
 
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decodedToken.uid;
-    const { name, type, projectId } = await request.json();
+    const { name, type, projectId, domain } = await request.json();
 
     // Validate input
     if (!name || !type) {
@@ -107,6 +108,25 @@ export async function POST(request: NextRequest) {
 
     if (!["test", "prod"].includes(type)) {
       return NextResponse.json({ error: "Type must be 'test' or 'prod'" }, { status: 400 });
+    }
+
+    // Validate domain if provided
+    if (domain && typeof domain === "string") {
+      try {
+        const url = new URL(domain);
+        // Ensure it's http or https
+        if (!["http:", "https:"].includes(url.protocol)) {
+          return NextResponse.json(
+            { error: "Domain must use http or https protocol" },
+            { status: 400 },
+          );
+        }
+      } catch (error) {
+        return NextResponse.json(
+          { error: "Invalid domain format. Must be a valid URL (e.g., https://warden.sh)" },
+          { status: 400 },
+        );
+      }
     }
 
     // Get target project ID
@@ -139,27 +159,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Check subscription limits
-    const limits = projectData.subscriptionLimits || getSubscriptionLimits(projectData.subscriptionTier || "basic");
+    const limits =
+      projectData.subscriptionLimits ||
+      getSubscriptionLimits(projectData.subscriptionTier || "basic");
     const currentActiveKeys = await countActiveKeys(targetProjectId, type);
     const keyLimit = type === "test" ? limits.activeTestKeys : limits.activeProdKeys;
-    
+
     if (!isWithinLimit(currentActiveKeys, keyLimit)) {
       const tierName = projectData.subscriptionTier === "pro" ? "Pro" : "Basic";
-      const upgradeTo = projectData.subscriptionTier === "basic" ? "Pro for 5" : "Enterprise for unlimited";
-      
+      const upgradeTo =
+        projectData.subscriptionTier === "basic" ? "Pro for 5" : "Enterprise for unlimited";
+
       return NextResponse.json(
-        { 
+        {
           error: `${type === "test" ? "Test" : "Production"} key limit reached`,
-          message: `Your ${tierName} plan allows ${keyLimit} active ${type} key${keyLimit !== 1 ? 's' : ''}. You currently have ${currentActiveKeys} active.`,
+          message: `Your ${tierName} plan allows ${keyLimit} active ${type} key${keyLimit !== 1 ? "s" : ""}. You currently have ${currentActiveKeys} active.`,
           suggestion: `Delete or deactivate an existing ${type} key, or upgrade to ${upgradeTo} ${type} keys.`,
           details: {
             currentActiveKeys,
             limit: keyLimit,
             keyType: type,
-            tier: projectData.subscriptionTier || "basic"
-          }
+            tier: projectData.subscriptionTier || "basic",
+          },
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -184,6 +207,11 @@ export async function POST(request: NextRequest) {
       keyData.expiresAt = admin.firestore.Timestamp.fromDate(
         new Date(Date.now() + 2 * 60 * 60 * 1000),
       );
+    }
+
+    // Add domain for production keys if provided
+    if (type === "prod" && domain) {
+      keyData.domain = domain;
     }
 
     await keyRef.set(keyData);

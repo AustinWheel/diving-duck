@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
-import { Button } from "@once-ui-system/core";
+import { Text, Icon, Row } from "@once-ui-system/core";
+import { CircleCheck, Circle, ChevronsUpDown } from "lucide-react";
+import { Dropdown, ConfigProvider } from "antd";
+import type { MenuProps } from "antd";
 
 interface TimeRangeSelectorProps {
   value: number; // in hours
@@ -22,60 +25,100 @@ const TIME_RANGE_OPTIONS = [
 ];
 
 export default function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-
   const selectedOption =
     TIME_RANGE_OPTIONS.find((opt) => opt.value === value) || TIME_RANGE_OPTIONS[0];
 
-  return (
-    <div style={{ position: "relative" }}>
-      <Button
-        onClick={() => setShowDropdown(!showDropdown)}
-        variant="secondary"
-        size="m"
-        suffixIcon="chevronDown"
-        style={{ minWidth: "140px" }}
-      >
-        {selectedOption.label}
-      </Button>
+  // Create menu items for dropdown
+  const menuItems: MenuProps["items"] = TIME_RANGE_OPTIONS.map((option) => ({
+    key: option.value,
+    label: (
+      <Row vertical="center" horizontal="space-between" fillWidth gap="12">
+        <Text variant="body-default-m">{option.label}</Text>
+        {option.value === value ? (
+          <CircleCheck size={16} style={{ color: "#4ade80", flexShrink: 0 }} />
+        ) : (
+          <Circle size={16} style={{ color: "rgba(255, 255, 255, 0.3)", flexShrink: 0 }} />
+        )}
+      </Row>
+    ),
+    onClick: () => {
+      onChange(option.value);
+    },
+    style: {
+      backgroundColor: option.value === value ? "rgba(255, 107, 53, 0.08)" : "transparent",
+      padding: "4px 12px",
+      minHeight: "28px",
+    },
+  }));
 
-      {showDropdown && (
-        <div
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorBgElevated: "rgba(20, 20, 20, 0.98)",
+          colorBorder: "rgba(255, 255, 255, 0.08)",
+          colorText: "rgba(255, 255, 255, 0.9)",
+          colorTextSecondary: "rgba(255, 255, 255, 0.6)",
+          borderRadius: 8,
+          controlItemBgHover: "rgba(255, 255, 255, 0.08)",
+          controlItemBgActive: "rgba(255, 107, 53, 0.08)",
+          controlPaddingHorizontal: 0,
+          padding: 4,
+        },
+      }}
+    >
+      <Dropdown
+        menu={{ items: menuItems }}
+        trigger={["click"]}
+        placement="bottomRight"
+        overlayStyle={{
+          minWidth: "160px",
+        }}
+        popupRender={(menu) => (
+          <div
+            style={{
+              backgroundColor: "rgba(20, 20, 20, 0.98)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "8px",
+              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+            }}
+          >
+            {menu}
+          </div>
+        )}
+      >
+        <button
           style={{
-            position: "absolute",
-            top: "100%",
-            right: 0,
-            marginTop: "4px",
-            backgroundColor: "rgba(40, 40, 40, 0.98)",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
+            padding: "8px 12px",
+            backgroundColor: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "8px",
-            overflow: "hidden",
-            zIndex: 10,
-            minWidth: "140px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            color: "var(--neutral-on-background-strong)",
+            minWidth: "120px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.02)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
           }}
         >
-          {TIME_RANGE_OPTIONS.map((option) => (
-            <Button
-              key={option.value}
-              onClick={() => {
-                onChange(option.value);
-                setShowDropdown(false);
-              }}
-              variant="tertiary"
-              size="m"
-              fillWidth
-              style={{
-                borderRadius: 0,
-                justifyContent: "flex-start",
-                backgroundColor:
-                  option.value === value ? "rgba(255, 255, 255, 0.05)" : "transparent",
-              }}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
-      )}
-    </div>
+          <Icon name="clock" size="xs" />
+          <Text variant="body-default-s" onBackground="neutral-strong" style={{ flex: 1 }}>
+            {selectedOption.label}
+          </Text>
+          <ChevronsUpDown size={14} />
+        </button>
+      </Dropdown>
+    </ConfigProvider>
   );
 }

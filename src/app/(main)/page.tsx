@@ -16,6 +16,7 @@ import {
 } from "@once-ui-system/core";
 import { Navbar } from "@/components/Navbar";
 import { VideoBackground } from "@/components/VideoBackground";
+import PublicEventCounter from "@/components/PublicEventCounter";
 
 export default function Home() {
   return (
@@ -39,7 +40,7 @@ export default function Home() {
         <Column
           maxWidth="m"
           horizontal="center"
-          gap="l"
+          vertical="center"
           align="center"
           style={{
             position: "relative",
@@ -133,23 +134,8 @@ export default function Home() {
             </Button>
           </Flex>
 
-          <Flex
-            vertical="center"
-            horizontal="center"
-            style={{
-              marginTop: "80px",
-              animation: "bounce 2s infinite",
-            }}
-          >
-            <Button
-              href="#features"
-              variant="tertiary"
-              size="m"
-              style={{ color: "var(--neutral-on-background-weak)" }}
-            >
-              Introducing console.text() for developers →
-            </Button>
-          </Flex>
+          {/* Live Event Counter */}
+          <PublicEventCounter />
         </Column>
       </Column>
 

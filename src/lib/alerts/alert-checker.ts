@@ -33,7 +33,8 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
   const now = new Date();
 
   // Get bucket configuration
-  const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+  const limits =
+    project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
   const bucketMinutes = limits.eventBucketMinutes;
 
   // Check global limit first
@@ -44,16 +45,16 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
     const bucketIds = calculateBucketRange(event.projectId, windowStart, now, bucketMinutes);
 
     // Query all relevant buckets
-    const bucketPromises = bucketIds.map(bucketId => 
-      adminDb.collection("bucketedEvents").doc(bucketId).get()
+    const bucketPromises = bucketIds.map((bucketId) =>
+      adminDb.collection("bucketedEvents").doc(bucketId).get(),
     );
-    
+
     const bucketDocs = await Promise.all(bucketPromises);
 
     // Count all events in the window
     let eventCount = 0;
     const eventIds: string[] = [];
-    
+
     for (const bucketDoc of bucketDocs) {
       if (bucketDoc.exists) {
         const bucketData = bucketDoc.data() as any;
@@ -64,7 +65,7 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
             return timestamp >= windowStart && timestamp <= now;
           });
           eventCount += eventsInWindow.length;
-          
+
           // Generate event IDs
           eventsInWindow.forEach((e: any, index: number) => {
             eventIds.push(`${bucketDoc.id}_${index}`);
@@ -116,16 +117,16 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
       const bucketIds = calculateBucketRange(event.projectId, windowStart, now, bucketMinutes);
 
       // Query all relevant buckets
-      const bucketPromises = bucketIds.map(bucketId => 
-        adminDb.collection("bucketedEvents").doc(bucketId).get()
+      const bucketPromises = bucketIds.map((bucketId) =>
+        adminDb.collection("bucketedEvents").doc(bucketId).get(),
       );
-      
+
       const bucketDocs = await Promise.all(bucketPromises);
 
       // Count matching events in the window
       let eventCount = 0;
       const eventIds: string[] = [];
-      
+
       for (const bucketDoc of bucketDocs) {
         if (bucketDoc.exists) {
           const bucketData = bucketDoc.data() as any;
@@ -135,13 +136,14 @@ async function checkAlertRule(event: LogEvent, project: Project, rule: AlertRule
               const timestamp = e.timestamp?.toDate ? e.timestamp.toDate() : new Date(e.timestamp);
               const timeMatch = timestamp >= windowStart && timestamp <= now;
               const messageMatch = e.message === messageRule.message;
-              const typeMatch = !messageRule.logTypes?.length || messageRule.logTypes.includes(e.type);
-              
+              const typeMatch =
+                !messageRule.logTypes?.length || messageRule.logTypes.includes(e.type);
+
               return timeMatch && messageMatch && typeMatch;
             });
-            
+
             eventCount += matchingEvents.length;
-            
+
             // Generate event IDs for matching events
             matchingEvents.forEach((e: any) => {
               const eventIndex = bucketData.events.indexOf(e);
@@ -341,7 +343,7 @@ async function sendSMS(alertId: string, phoneNumbers: string[], message: string)
         sentTo: successfulNumbers,
         error: errors.length > 0 ? `Partial failure: ${errors.join(", ")}` : null,
       });
-    
+
     // Increment daily alert counter
     const alertDoc = await adminDb.collection("alerts").doc(alertId).get();
     const alertData = alertDoc.data();

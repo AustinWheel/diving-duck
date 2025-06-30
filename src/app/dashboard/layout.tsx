@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -48,6 +48,9 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({});
+  const navItemsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const navContainerRef = useRef<HTMLDivElement>(null);
 
   // Set sidebar open on desktop, closed on mobile
   useEffect(() => {
@@ -69,6 +72,43 @@ export default function DashboardLayout({
       setLoadingPath(null);
     }
   }, [isPending]);
+
+  // Update indicator position when pathname changes
+  useEffect(() => {
+    const updateIndicatorPosition = () => {
+      const activeIndex = navigationItems.findIndex((item) => {
+        return (
+          pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+        );
+      });
+
+      if (activeIndex !== -1 && navItemsRef.current[activeIndex] && navContainerRef.current) {
+        const activeItem = navItemsRef.current[activeIndex];
+        const container = navContainerRef.current;
+        const itemRect = activeItem.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        const top = itemRect.top - containerRect.top;
+
+        setIndicatorStyle({
+          transform: `translateY(${top}px)`,
+          height: `${itemRect.height}px`,
+          opacity: 1,
+        });
+      } else {
+        setIndicatorStyle({
+          opacity: 0,
+        });
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    setTimeout(updateIndicatorPosition, 50);
+
+    // Update on window resize
+    window.addEventListener("resize", updateIndicatorPosition);
+    return () => window.removeEventListener("resize", updateIndicatorPosition);
+  }, [pathname, sidebarOpen]);
 
   const handleSignOut = async () => {
     try {
@@ -215,13 +255,11 @@ export default function DashboardLayout({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "12px",
               backgroundColor: "transparent",
               color: "var(--neutral-on-background-weak)",
               borderRadius: "8px",
               transition: "all 0.2s ease",
               cursor: "pointer",
-              marginBottom: "4px",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
@@ -324,8 +362,25 @@ export default function DashboardLayout({
         )}
 
         {/* Navigation */}
-        <Column style={{ flex: 1, padding: "8px" }}>
-          {navigationItems.map((item) => {
+        <Column ref={navContainerRef} style={{ flex: 1, padding: "8px", position: "relative" }}>
+          {/* Sliding Indicator */}
+          <div
+            style={{
+              position: "absolute",
+              left: "4px",
+              top: 0,
+              width: "calc(100% - 8px)",
+              height: "40px",
+              backgroundColor: "rgba(255, 107, 53, 0.1)",
+              borderRadius: "8px",
+              transition:
+                "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, height 0.3s ease",
+              pointerEvents: "none",
+              ...indicatorStyle,
+            }}
+          />
+
+          {navigationItems.map((item, index) => {
             const isActive =
               pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -347,12 +402,15 @@ export default function DashboardLayout({
                 }}
               >
                 <div
+                  ref={(el) => {
+                    navItemsRef.current[index] = el;
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: sidebarOpen ? "flex-start" : "center",
                     padding: sidebarOpen ? "12px 16px" : "12px",
-                    backgroundColor: isActive ? "rgba(255, 107, 53, 0.1)" : "transparent",
+                    backgroundColor: "transparent",
                     color: isActive
                       ? "var(--brand-on-background-strong)"
                       : "var(--neutral-on-background-weak)",
@@ -360,16 +418,16 @@ export default function DashboardLayout({
                     transition: "all 0.2s ease",
                     cursor: "pointer",
                     opacity: isPending && loadingPath === item.href ? 0.6 : 1,
+                    position: "relative",
+                    zIndex: 1,
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
                       e.currentTarget.style.color = "var(--neutral-on-background-strong)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.backgroundColor = "transparent";
                       e.currentTarget.style.color = "var(--neutral-on-background-weak)";
                     }
                   }}
@@ -383,9 +441,7 @@ export default function DashboardLayout({
                       )}
                       {sidebarOpen && <Text>{item.label}</Text>}
                     </Flex>
-                    {isPending && loadingPath === item.href && sidebarOpen && (
-                      <Spinner size="m" />
-                    )}
+                    {isPending && loadingPath === item.href && sidebarOpen && <Spinner size="m" />}
                   </Flex>
                 </div>
               </Link>

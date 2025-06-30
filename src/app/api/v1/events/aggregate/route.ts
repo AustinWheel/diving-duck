@@ -26,7 +26,7 @@ const CACHE_TTL = 1 * 60 * 1000; // 1 minute in milliseconds
 
 // Generate cache key from request parameters
 function getCacheKey(projectId: string, startTime: string, endTime: string, filters?: any): string {
-  const filterKey = filters ? JSON.stringify(filters) : 'no-filters';
+  const filterKey = filters ? JSON.stringify(filters) : "no-filters";
   return `${projectId}:${startTime}:${endTime}:${filterKey}`;
 }
 
@@ -119,22 +119,28 @@ export async function POST(request: NextRequest) {
     // Check cache first
     const cacheKey = getCacheKey(projectId, startTime, endTime, filters);
     const cachedEntry = cache.get(cacheKey);
-    
+
     let events: LogEvent[];
     let alerts: Alert[];
 
     if (cachedEntry && isCacheValid(cachedEntry)) {
       // Use cached data
       console.log(`[Cache HIT] Using cached data for key: ${cacheKey}`);
-      console.log(`[Cache HIT] Cached ${cachedEntry.events.length} events and ${cachedEntry.alerts.length} alerts`);
-      console.log(`[Cache HIT] Cache age: ${Math.round((Date.now() - cachedEntry.timestamp) / 1000)}s`);
+      console.log(
+        `[Cache HIT] Cached ${cachedEntry.events.length} events and ${cachedEntry.alerts.length} alerts`,
+      );
+      console.log(
+        `[Cache HIT] Cache age: ${Math.round((Date.now() - cachedEntry.timestamp) / 1000)}s`,
+      );
       events = cachedEntry.events;
       alerts = cachedEntry.alerts;
     } else {
       // Query events and alerts in parallel
       console.log(`[Cache MISS] No valid cache for key: ${cacheKey}`);
       if (cachedEntry) {
-        console.log(`[Cache MISS] Cache expired, age: ${Math.round((Date.now() - cachedEntry.timestamp) / 1000)}s`);
+        console.log(
+          `[Cache MISS] Cache expired, age: ${Math.round((Date.now() - cachedEntry.timestamp) / 1000)}s`,
+        );
       }
       console.log(`[Firebase READ] Starting queries for project ${projectId}`);
       console.log(`[Firebase READ] Time range: ${start.toISOString()} to ${end.toISOString()}`);
@@ -150,7 +156,7 @@ export async function POST(request: NextRequest) {
 
       console.log(`[Firebase READ] Completed in ${queryTime}ms`);
       console.log(`[Firebase READ] Retrieved ${events.length} events and ${alerts.length} alerts`);
-      
+
       // Store in cache
       cache.set(cacheKey, {
         events,

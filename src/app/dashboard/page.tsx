@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Flex, Column, Heading, Text, Icon, Spinner, Button, Tag } from "@once-ui-system/core";
+import { Flex, Row, Column, Heading, Text, Icon, Spinner, Button, Tag } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProject } from "@/contexts/ProjectContext";
 import { db } from "@/lib/firebaseClient";
@@ -13,6 +13,7 @@ import EventActivityChart from "@/components/EventActivityChart";
 import MessageAggregatedEvents from "@/components/MessageAggregatedEvents";
 import TimeRangeSelector from "@/components/TimeRangeSelector";
 import { LogType } from "@/types/database";
+import { useLiveEventCount } from "@/hooks/useLiveEventCount";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -23,6 +24,13 @@ export default function Dashboard() {
   const [stepSize, setStepSize] = useState(1); // minutes - default to 1 minute
   const [messageFilter, setMessageFilter] = useState<string | null>(null);
   const [logTypeFilter, setLogTypeFilter] = useState<LogType[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Live event count
+  const { count: liveEventCount, isConnected } = useLiveEventCount({
+    projectId: currentProjectId,
+    enabled: !!currentProjectId && !checkingOnboarding,
+  });
 
   // Fetch dashboard stats using TanStack Query
   const {
@@ -104,7 +112,11 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-        console.error("[Dashboard] Failed to fetch event data:", response.status, response.statusText);
+        console.error(
+          "[Dashboard] Failed to fetch event data:",
+          response.status,
+          response.statusText,
+        );
         throw new Error("Failed to fetch event data");
       }
 
@@ -117,7 +129,7 @@ export default function Dashboard() {
         alerts: data.alerts,
         summary: data.summary,
       });
-      
+
       return data;
     },
     enabled: !!currentProjectId && !checkingOnboarding,
@@ -136,6 +148,17 @@ export default function Dashboard() {
       checkOnboardingStatus();
     }
   }, [user, loading, router]);
+
+  // Check for mobile screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   // Update step size when time range changes
   useEffect(() => {
@@ -194,33 +217,32 @@ export default function Dashboard() {
   }: { icon: any; label: string; value: string | number; color?: string }) => (
     <div
       style={{
-        flex: 1,
-        padding: "24px",
+        padding: "16px",
         backgroundColor: "rgba(255, 255, 255, 0.02)",
         border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "12px",
-        minWidth: "200px",
       }}
     >
-      <Flex gap="16" vertical="center" style={{ marginBottom: "16px" }}>
+      <Flex gap="12" vertical="center" style={{ marginBottom: "8px" }}>
         <div
           style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "8px",
-            backgroundColor: color ? `${color}20` : "rgba(255, 107, 53, 0.1)",
+            width: "32px",
+            height: "32px",
+            borderRadius: "6px",
+            backgroundColor: color ? `${color}15` : "rgba(255, 107, 53, 0.1)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          <Icon name={icon} size="m" color={color || "var(--brand-on-background-strong)"} />
+          <Icon name={icon} size="s" color={color || "var(--brand-on-background-strong)"} />
         </div>
-        <Text variant="body-default-s" onBackground="neutral-weak">
+        <Text variant="body-default-xs" onBackground="neutral-weak" style={{ lineHeight: "1.2" }}>
           {label}
         </Text>
       </Flex>
-      <Text variant="heading-strong-xl" onBackground="neutral-strong">
+      <Text variant="heading-strong-l" onBackground="neutral-strong">
         {value}
       </Text>
     </div>
@@ -228,6 +250,19 @@ export default function Dashboard() {
 
   return (
     <Column fillWidth padding="32" gap="32">
+      <style jsx>{`
+        @keyframes pulse-dot {
+          0%,
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.6;
+            transform: scale(0.8);
+          }
+        }
+      `}</style>
       {/* Header */}
       <Column gap="8">
         <Heading variant="display-strong-l">
@@ -239,38 +274,98 @@ export default function Dashboard() {
       </Column>
 
       {/* Stats Cards */}
-      <Flex gap="24" wrap style={{ marginTop: "16px" }}>
-        <StatCard
-          icon="zap"
-          label="Events (24h)"
-          value={loadingStats ? "..." : stats?.events || 0}
-        />
-        <StatCard
-          icon="bell"
-          label="Active Alerts"
-          value={loadingStats ? "..." : stats?.alerts || 0}
-          color="var(--danger-on-background-strong)"
-        />
-        <StatCard
-          icon="key"
-          label="API Keys"
-          value={loadingStats ? "..." : stats?.apiKeys || 0}
-          color="var(--success-on-background-strong)"
-        />
-        <StatCard
-          icon="user"
-          label="Team Members"
-          value={loadingStats ? "..." : stats?.teamMembers || 0}
-          color="var(--info-on-background-strong)"
-        />
-      </Flex>
+      <Column gap="8">
+        <Row fillWidth mobileDirection="row" gap="8">
+          <Column fillWidth>
+            <div
+              style={{
+                padding: "16px",
+                backgroundColor: "rgba(255, 255, 255, 0.02)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "12px",
+                position: "relative",
+              }}
+            >
+              <Flex gap="12" vertical="center" style={{ marginBottom: "8px" }}>
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "6px",
+                    backgroundColor: "rgba(255, 107, 53, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon name="activity" size="s" color="var(--brand-on-background-strong)" />
+                </div>
+                <Text variant="body-default-xs" onBackground="neutral-weak" style={{ lineHeight: "1.2" }}>
+                  Total Events
+                </Text>
+                {isConnected && (
+                  <div
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      backgroundColor: "#22c55e",
+                      animation: "pulse-dot 2s infinite",
+                      marginLeft: "auto",
+                    }}
+                    title="Live updates active"
+                  />
+                )}
+              </Flex>
+              <Text variant="heading-strong-l" onBackground="neutral-strong">
+                {liveEventCount === null ? "..." : liveEventCount.toLocaleString()}
+              </Text>
+            </div>
+          </Column>
+          <Column fillWidth>
+            <StatCard
+              icon="bell"
+              label="Active Alerts"
+              value={loadingStats ? "..." : stats?.alerts || 0}
+              color="var(--danger-on-background-strong)"
+            />
+          </Column>
+        </Row>
+
+        <Row fillWidth mobileDirection="row" gap="8">
+          <Column fillWidth>
+            <StatCard
+              icon="key"
+              label="API Keys"
+              value={loadingStats ? "..." : stats?.apiKeys || 0}
+              color="var(--success-on-background-strong)"
+            />
+          </Column>
+          <Column fillWidth>
+            <StatCard
+              icon="user"
+              label="Team Members"
+              value={loadingStats ? "..." : stats?.teamMembers || 0}
+              color="var(--info-on-background-strong)"
+            />
+          </Column>
+        </Row>
+      </Column>
 
       {/* Time Range Selector */}
-      <Flex fillWidth horizontal="space-between" vertical="center" style={{ marginTop: "24px" }}>
+      <Flex
+        fillWidth
+        horizontal={isMobile ? "start" : "space-between"}
+        vertical={isMobile ? "start" : "center"}
+        direction={isMobile ? "column" : "row"}
+        gap="16"
+        style={{ marginTop: "24px" }}
+      >
         <Text variant="heading-strong-m" onBackground="neutral-strong">
           Event Analytics
         </Text>
-        <Flex gap="16" vertical="center">
+        <Flex gap="8" vertical="center">
           <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
           <Button
             onClick={() => {
@@ -280,9 +375,13 @@ export default function Dashboard() {
             variant="secondary"
             size="m"
             disabled={loadingEvents || loadingStats}
+            style={{
+              padding: "8px",
+              minWidth: "auto",
+            }}
+            title="Refresh data"
           >
-            <Icon name="refresh" size="s" style={{ marginRight: "8px" }} />
-            Refresh
+            <Icon name="refresh" size="s" />
           </Button>
         </Flex>
       </Flex>
@@ -348,8 +447,8 @@ export default function Dashboard() {
       />
 
       {/* Messages and Alerts Section */}
-      <Flex gap="24" style={{ marginTop: "24px" }}>
-        <div style={{ flex: 1 }}>
+      <Row mobileDirection="column" gap="24" fillWidth>
+        <Column fillWidth>
           <MessageAggregatedEvents
             data={eventData?.messageAggregated || []}
             onMessageClick={(message) => {
@@ -357,14 +456,14 @@ export default function Dashboard() {
             }}
             loading={loadingEvents}
           />
-        </div>
+        </Column>
 
-        <Column gap="16" style={{ flex: 1 }}>
+        <Column gap="16" fillWidth fitHeight>
           <Flex fillWidth horizontal="space-between" vertical="center">
             <Text variant="heading-strong-l" onBackground="neutral-strong">
               Recent Alerts
             </Text>
-            <Button href="/dashboard/alerts" variant="ghost" size="s">
+            <Button href="/dashboard/alerts" variant="tertiary" size="s">
               View All
             </Button>
           </Flex>
@@ -397,7 +496,7 @@ export default function Dashboard() {
                       borderRadius: "8px",
                     }}
                   >
-                    <Flex horizontal="space-between" vertical="start">
+                    <Flex horizontal="space-between" vertical="center">
                       <Column gap="4" style={{ flex: 1 }}>
                         <Text variant="body-default-m" onBackground="neutral-strong">
                           {alert.message}
@@ -408,7 +507,7 @@ export default function Dashboard() {
                       </Column>
                       <span
                         style={{
-                          padding: "2px 6px",
+                          padding: "4px 8px",
                           borderRadius: "4px",
                           backgroundColor:
                             alert.status === "sent"
@@ -418,6 +517,7 @@ export default function Dashboard() {
                           fontSize: "11px",
                           fontWeight: 500,
                           textTransform: "uppercase",
+                          marginLeft: "12px",
                         }}
                       >
                         {alert.status}
@@ -441,7 +541,7 @@ export default function Dashboard() {
             )}
           </div>
         </Column>
-      </Flex>
+      </Row>
 
       {/* Quick Actions */}
       <Column gap="16" style={{ marginTop: "24px" }}>

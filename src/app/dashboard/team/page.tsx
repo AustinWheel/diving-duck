@@ -674,7 +674,7 @@ export default function TeamPage() {
           </div>
         </Column>
       )}
-      
+
       {/* Limit Error Modal */}
       {LimitErrorModal}
     </Column>

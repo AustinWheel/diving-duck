@@ -96,7 +96,11 @@ export default function UsageLimits({
       <Column gap="16">
         {/* Daily Limits */}
         <Column gap="12">
-          <Text variant="body-default-xs" onBackground="neutral-weak" style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <Text
+            variant="body-default-xs"
+            onBackground="neutral-weak"
+            style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
+          >
             Daily Limits
           </Text>
           <UsageItem
@@ -115,7 +119,11 @@ export default function UsageLimits({
 
         {/* Resource Limits */}
         <Column gap="12" style={{ marginTop: "8px" }}>
-          <Text variant="body-default-xs" onBackground="neutral-weak" style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <Text
+            variant="body-default-xs"
+            onBackground="neutral-weak"
+            style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
+          >
             Resource Limits
           </Text>
           <UsageItem
@@ -154,7 +162,11 @@ export default function UsageLimits({
 
         {/* Total Limits */}
         <Column gap="12" style={{ marginTop: "8px" }}>
-          <Text variant="body-default-xs" onBackground="neutral-weak" style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <Text
+            variant="body-default-xs"
+            onBackground="neutral-weak"
+            style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}
+          >
             Total Limits
           </Text>
           <UsageItem

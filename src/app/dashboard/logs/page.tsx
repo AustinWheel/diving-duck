@@ -20,6 +20,9 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
 import { LogType } from "@/types/database";
 import TimeRangeSelector from "@/components/TimeRangeSelector";
+import { CircleCheck, Circle, ChevronsUpDown } from "lucide-react";
+import { Dropdown, ConfigProvider } from "antd";
+import type { MenuProps } from "antd";
 
 interface LogEvent {
   id: string;
@@ -295,62 +298,125 @@ export default function EventLogsPage() {
         <>
           {/* Filters */}
           <Flex gap="16" wrap vertical="center">
-            <div style={{ position: "relative" }}>
-              <Button
-                onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                variant="secondary"
-                size="m"
-                style={{ minWidth: "120px" }}
-                horizontal="space-between"
-                suffixIcon="chevronDown"
+            <ConfigProvider
+              theme={{
+                token: {
+                  colorBgElevated: "rgba(20, 20, 20, 0.98)",
+                  colorBorder: "rgba(255, 255, 255, 0.08)",
+                  colorText: "rgba(255, 255, 255, 0.9)",
+                  colorTextSecondary: "rgba(255, 255, 255, 0.6)",
+                  borderRadius: 8,
+                  controlItemBgHover: "rgba(255, 255, 255, 0.08)",
+                  controlItemBgActive: "rgba(255, 107, 53, 0.08)",
+                  controlPaddingHorizontal: 0,
+                  padding: 4,
+                },
+              }}
+            >
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: "all",
+                      label: (
+                        <Row vertical="center" horizontal="space-between" fillWidth gap="12">
+                          <Text variant="body-default-m">All</Text>
+                          {selectedType === "all" ? (
+                            <CircleCheck size={16} style={{ color: "#4ade80", flexShrink: 0 }} />
+                          ) : (
+                            <Circle
+                              size={16}
+                              style={{ color: "rgba(255, 255, 255, 0.3)", flexShrink: 0 }}
+                            />
+                          )}
+                        </Row>
+                      ),
+                      onClick: () => setSelectedType("all"),
+                      style: {
+                        backgroundColor:
+                          selectedType === "all" ? "rgba(255, 107, 53, 0.08)" : "transparent",
+                        padding: "4px 12px",
+                        minHeight: "28px",
+                      },
+                    },
+                    ...logTypes.map((type) => ({
+                      key: type,
+                      label: (
+                        <Row vertical="center" horizontal="space-between" fillWidth gap="12">
+                          <Text variant="body-default-m" style={{ textTransform: "uppercase" }}>
+                            {type}
+                          </Text>
+                          {selectedType === type ? (
+                            <CircleCheck size={16} style={{ color: "#4ade80", flexShrink: 0 }} />
+                          ) : (
+                            <Circle
+                              size={16}
+                              style={{ color: "rgba(255, 255, 255, 0.3)", flexShrink: 0 }}
+                            />
+                          )}
+                        </Row>
+                      ),
+                      onClick: () => setSelectedType(type),
+                      style: {
+                        backgroundColor:
+                          selectedType === type ? "rgba(255, 107, 53, 0.08)" : "transparent",
+                        padding: "4px 12px",
+                        minHeight: "28px",
+                      },
+                    })),
+                  ],
+                }}
+                trigger={["click"]}
+                placement="bottomRight"
+                overlayStyle={{
+                  minWidth: "160px",
+                }}
+                popupRender={(menu) => (
+                  <div
+                    style={{
+                      backgroundColor: "rgba(20, 20, 20, 0.98)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: "8px",
+                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+                      backdropFilter: "blur(24px)",
+                      WebkitBackdropFilter: "blur(24px)",
+                    }}
+                  >
+                    {menu}
+                  </div>
+                )}
               >
-                Type: {selectedType === "all" ? "All" : selectedType}
-              </Button>
-              {showTypeDropdown && (
-                <div
+                <button
                   style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    marginTop: "4px",
-                    backgroundColor: "rgba(40, 40, 40, 0.98)",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    padding: "8px 12px",
+                    backgroundColor: "rgba(255, 255, 255, 0.02)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
                     borderRadius: "8px",
-                    overflow: "hidden",
-                    zIndex: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    color: "var(--neutral-on-background-strong)",
                     minWidth: "120px",
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.02)";
+                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                  }}
                 >
-                  <Button
-                    onClick={() => {
-                      setSelectedType("all");
-                      setShowTypeDropdown(false);
-                    }}
-                    variant="tertiary"
-                    size="s"
-                    fillWidth
-                    style={{ borderRadius: 0, justifyContent: "flex-start" }}
-                  >
-                    All
-                  </Button>
-                  {logTypes.map((type) => (
-                    <Button
-                      key={type}
-                      onClick={() => {
-                        setSelectedType(type);
-                        setShowTypeDropdown(false);
-                      }}
-                      variant="tertiary"
-                      size="s"
-                      fillWidth
-                      style={{ borderRadius: 0, justifyContent: "flex-start" }}
-                    >
-                      {type}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+                  <Icon name="list" size="xs" />
+                  <Text variant="body-default-s" onBackground="neutral-strong" style={{ flex: 1 }}>
+                    Type: {selectedType === "all" ? "All" : selectedType}
+                  </Text>
+                  <ChevronsUpDown size={14} />
+                </button>
+              </Dropdown>
+            </ConfigProvider>
 
             <Input
               id="search-input"
@@ -370,7 +436,9 @@ export default function EventLogsPage() {
 
           {/* Events Table */}
           {events.length === 0 ? (
-            <Column vertical="center" horizontal="center"
+            <Column
+              vertical="center"
+              horizontal="center"
               style={{
                 padding: "48px",
                 backgroundColor: "rgba(255, 255, 255, 0.02)",
@@ -563,7 +631,6 @@ export default function EventLogsPage() {
             </div>
           )}
 
-
           {/* Event Details Modal */}
           {selectedEvent && (
             <div
@@ -741,66 +808,118 @@ export default function EventLogsPage() {
               <Text variant="body-default-s" onBackground="neutral-strong">
                 API Key
               </Text>
-              <div style={{ position: "relative", width: "100%", maxWidth: "400px" }}>
-                <Button
-                  onClick={() => setShowKeyDropdown(!showKeyDropdown)}
-                  variant="secondary"
-                  size="m"
-                  fillWidth
-                  horizontal="space-between"
-                  disabled={sandboxKeys.length === 0}
-                  suffixIcon="chevronDown"
+              <div style={{ width: "100%", maxWidth: "400px" }}>
+                <ConfigProvider
+                  theme={{
+                    token: {
+                      colorBgElevated: "rgba(20, 20, 20, 0.98)",
+                      colorBorder: "rgba(255, 255, 255, 0.08)",
+                      colorText: "rgba(255, 255, 255, 0.9)",
+                      colorTextSecondary: "rgba(255, 255, 255, 0.6)",
+                      borderRadius: 8,
+                      controlItemBgHover: "rgba(255, 255, 255, 0.08)",
+                      controlItemBgActive: "rgba(255, 107, 53, 0.08)",
+                      controlPaddingHorizontal: 0,
+                      padding: 4,
+                    },
+                  }}
                 >
-                  <Text>
-                    {sandboxKeys.find((k) => k.id === selectedKey)?.name || "Select a key"}
-                  </Text>
-                </Button>
-                {showKeyDropdown && sandboxKeys.length > 0 && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "100%",
-                      left: 0,
-                      right: 0,
-                      marginTop: "4px",
-                      backgroundColor: "rgba(40, 40, 40, 0.98)",
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      zIndex: 10,
+                  <Dropdown
+                    menu={{
+                      items: sandboxKeys.map((key) => ({
+                        key: key.id,
+                        label: (
+                          <Row vertical="center" horizontal="space-between" fillWidth gap="12">
+                            <Column gap="2">
+                              <Text variant="body-default-m">{key.name}</Text>
+                              <Text variant="body-default-xs" onBackground="neutral-weak">
+                                {key.type === "prod" ? "Production" : "Test"} Key
+                              </Text>
+                            </Column>
+                            {selectedKey === key.id ? (
+                              <CircleCheck size={16} style={{ color: "#4ade80", flexShrink: 0 }} />
+                            ) : (
+                              <Circle
+                                size={16}
+                                style={{ color: "rgba(255, 255, 255, 0.3)", flexShrink: 0 }}
+                              />
+                            )}
+                          </Row>
+                        ),
+                        onClick: () => setSelectedKey(key.id),
+                        style: {
+                          backgroundColor:
+                            selectedKey === key.id ? "rgba(255, 107, 53, 0.08)" : "transparent",
+                          padding: "8px 12px",
+                          minHeight: "40px",
+                        },
+                      })),
                     }}
-                  >
-                    {sandboxKeys.map((key) => (
-                      <Row
-                        fillWidth
-                        horizontal="space-between"
-                        vertical="center"
-                        padding="xs"
-                        gap="8"
-                        key={key.id}
+                    trigger={["click"]}
+                    placement="bottomLeft"
+                    overlayStyle={{
+                      minWidth: "400px",
+                    }}
+                    popupRender={(menu) => (
+                      <div
+                        style={{
+                          backgroundColor: "rgba(20, 20, 20, 0.98)",
+                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                          borderRadius: "8px",
+                          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+                          backdropFilter: "blur(24px)",
+                          WebkitBackdropFilter: "blur(24px)",
+                        }}
                       >
-                        <Button
-                          onClick={() => {
-                            setSelectedKey(key.id);
-                            setShowKeyDropdown(false);
-                          }}
-                          variant="tertiary"
-                          size="m"
-                          fillWidth
-                          style={{
-                            justifyContent: "flex-start",
-                          }}
-                        >
-                          <Text>{key.name}</Text>
-                        </Button>
-                        <Tag
-                          variant={key.type === "prod" ? "success" : "warning"}
-                          label={key.type.toUpperCase()}
-                        />
-                      </Row>
-                    ))}
-                  </div>
-                )}
+                        {menu}
+                      </div>
+                    )}
+                    disabled={sandboxKeys.length === 0}
+                  >
+                    <button
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        backgroundColor: "rgba(255, 255, 255, 0.02)",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        cursor: sandboxKeys.length === 0 ? "not-allowed" : "pointer",
+                        transition: "all 0.2s ease",
+                        color:
+                          sandboxKeys.length === 0
+                            ? "var(--neutral-on-background-weak)"
+                            : "var(--neutral-on-background-strong)",
+                        opacity: sandboxKeys.length === 0 ? 0.5 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (sandboxKeys.length > 0) {
+                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+                          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (sandboxKeys.length > 0) {
+                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.02)";
+                          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                        }
+                      }}
+                      disabled={sandboxKeys.length === 0}
+                    >
+                      <Icon name="key" size="xs" />
+                      <Text
+                        variant="body-default-s"
+                        onBackground="neutral-strong"
+                        style={{ flex: 1, textAlign: "left" }}
+                      >
+                        {sandboxKeys.find((k) => k.id === selectedKey)?.name || "Select a key"}
+                      </Text>
+                      <ChevronsUpDown size={14} />
+                    </button>
+                  </Dropdown>
+                </ConfigProvider>
               </div>
             </Column>
 

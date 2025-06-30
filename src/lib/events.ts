@@ -27,7 +27,9 @@ export class EventsService {
     const { projectId, startTime, endTime, filters, limit = 1000 } = options;
 
     console.log(`[Firebase READ - Events] Querying events for project ${projectId}`);
-    console.log(`[Firebase READ - Events] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
+    console.log(
+      `[Firebase READ - Events] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`,
+    );
 
     // Get project to determine bucket configuration
     const projectDoc = await adminDb.collection("projects").doc(projectId).get();
@@ -35,7 +37,8 @@ export class EventsService {
       throw new Error("Project not found");
     }
     const project = projectDoc.data() as Project;
-    const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+    const limits =
+      project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
     const bucketMinutes = limits.eventBucketMinutes;
 
     // Get all bucket IDs for the time range
@@ -43,10 +46,10 @@ export class EventsService {
     console.log(`[Firebase READ - Events] Querying ${bucketIds.length} buckets`);
 
     // Query all relevant buckets
-    const bucketPromises = bucketIds.map(bucketId => 
-      adminDb.collection("bucketedEvents").doc(bucketId).get()
+    const bucketPromises = bucketIds.map((bucketId) =>
+      adminDb.collection("bucketedEvents").doc(bucketId).get(),
     );
-    
+
     const bucketDocs = await Promise.all(bucketPromises);
 
     // Extract all events from buckets
@@ -58,14 +61,16 @@ export class EventsService {
           const bucketEvents = bucketData.events.map((event: any, index: number) => ({
             ...event,
             id: `${bucketDoc.id}_${index}`,
-            timestamp: event.timestamp?.toDate ? event.timestamp.toDate() : new Date(event.timestamp)
+            timestamp: event.timestamp?.toDate
+              ? event.timestamp.toDate()
+              : new Date(event.timestamp),
           }));
-          
+
           // Filter events within exact time range
-          const eventsInRange = bucketEvents.filter((event: LogEvent) => 
-            event.timestamp >= startTime && event.timestamp <= endTime
+          const eventsInRange = bucketEvents.filter(
+            (event: LogEvent) => event.timestamp >= startTime && event.timestamp <= endTime,
           );
-          
+
           allEvents = allEvents.concat(eventsInRange);
         }
       }
@@ -76,16 +81,14 @@ export class EventsService {
     // Apply type filter if specified
     if (filters?.logTypes && filters.logTypes.length > 0) {
       console.log(`[EventsService.queryEvents] Filtering by log types:`, filters.logTypes);
-      allEvents = allEvents.filter(event => 
-        filters.logTypes!.includes(event.type)
-      );
+      allEvents = allEvents.filter((event) => filters.logTypes!.includes(event.type));
     }
 
     // Filter by messages if specified
     if (filters?.messages && filters.messages.length > 0) {
       console.log(`[EventsService.queryEvents] Filtering by messages:`, filters.messages);
-      allEvents = allEvents.filter(event => 
-        filters.messages!.some(msg => event.message.includes(msg))
+      allEvents = allEvents.filter((event) =>
+        filters.messages!.some((msg) => event.message.includes(msg)),
       );
       console.log(`[EventsService.queryEvents] After message filter: ${allEvents.length} events`);
     }
@@ -94,10 +97,11 @@ export class EventsService {
     if (filters?.search) {
       const searchLower = filters.search.toLowerCase();
       console.log(`[EventsService.queryEvents] Filtering by search term:`, filters.search);
-      allEvents = allEvents.filter(event =>
-        event.message.toLowerCase().includes(searchLower) ||
-        (event.meta && JSON.stringify(event.meta).toLowerCase().includes(searchLower)) ||
-        (event.userId && event.userId.toLowerCase().includes(searchLower))
+      allEvents = allEvents.filter(
+        (event) =>
+          event.message.toLowerCase().includes(searchLower) ||
+          (event.meta && JSON.stringify(event.meta).toLowerCase().includes(searchLower)) ||
+          (event.userId && event.userId.toLowerCase().includes(searchLower)),
       );
       console.log(`[EventsService.queryEvents] After search filter: ${allEvents.length} events`);
     }
@@ -123,7 +127,9 @@ export class EventsService {
     const { projectId, startTime, endTime } = options;
 
     console.log(`[Firebase READ - Alerts] Querying alerts for project ${projectId}`);
-    console.log(`[Firebase READ - Alerts] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`);
+    console.log(
+      `[Firebase READ - Alerts] Time range: ${startTime.toISOString()} to ${endTime.toISOString()}`,
+    );
 
     const query = adminDb
       .collection("alerts")
@@ -161,7 +167,9 @@ export class EventsService {
       const currentEnd = new Date(Math.min(currentStart.getTime() + chunkSize, endTime.getTime()));
       chunkCount++;
 
-      console.log(`[Firebase READ - Events] Chunk ${chunkCount}: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
+      console.log(
+        `[Firebase READ - Events] Chunk ${chunkCount}: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`,
+      );
 
       const chunkEvents = await this.queryEvents({
         projectId,
@@ -171,7 +179,9 @@ export class EventsService {
         limit: 5000, // Higher limit per chunk
       });
 
-      console.log(`[Firebase READ - Events] Chunk ${chunkCount} returned ${chunkEvents.length} events`);
+      console.log(
+        `[Firebase READ - Events] Chunk ${chunkCount} returned ${chunkEvents.length} events`,
+      );
       allEvents.push(...chunkEvents);
       currentStart = new Date(currentEnd.getTime() + 1);
     }
@@ -191,7 +201,7 @@ export class EventsService {
     // Initialize time buckets - align to step boundaries
     const alignedStartTime = new Date(Math.floor(startTime.getTime() / stepSizeMs) * stepSizeMs);
     const alignedEndTime = new Date(Math.ceil(endTime.getTime() / stepSizeMs) * stepSizeMs);
-    
+
     let currentTime = new Date(alignedStartTime);
     let bucketCount = 0;
     while (currentTime < alignedEndTime) {

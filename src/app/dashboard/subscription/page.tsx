@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Column,
-  Heading,
-  Text,
-  Button,
-  Flex,
-  Icon,
-  Spinner,
-  Badge,
-} from "@once-ui-system/core";
+import { Column, Heading, Text, Button, Flex, Icon, Spinner, Badge } from "@once-ui-system/core";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
 import { db } from "@/lib/firebaseClient";
@@ -131,7 +122,7 @@ export default function SubscriptionPage() {
         const { keys } = await keysResponse.json();
         const activeTestKeys = keys.filter((k: any) => k.type === "test" && k.isActive).length;
         const activeProdKeys = keys.filter((k: any) => k.type === "prod" && k.isActive).length;
-        
+
         setResourceCounts((prev) => ({
           ...prev,
           activeTestKeys,
@@ -142,13 +133,12 @@ export default function SubscriptionPage() {
       // Count phone numbers and alert rules
       const phoneNumbers = projectData.alertConfig?.phoneNumbers?.length || 0;
       const alertRules = projectData.alertConfig?.alertRules?.length || 0;
-      
+
       setResourceCounts((prev) => ({
         ...prev,
         phoneNumbers,
         alertRules,
       }));
-
     } catch (error) {
       console.error("Error loading project data:", error);
     } finally {
@@ -231,7 +221,11 @@ export default function SubscriptionPage() {
                   <span>Upgrade to Pro</span>
                 </Flex>
               </Button>
-              <Text variant="body-default-xs" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+              <Text
+                variant="body-default-xs"
+                onBackground="neutral-weak"
+                style={{ textAlign: "center" }}
+              >
                 Coming soon
               </Text>
             </Flex>
@@ -271,7 +265,8 @@ export default function SubscriptionPage() {
               style={{
                 flex: "1 1 300px",
                 padding: "24px",
-                backgroundColor: tier === currentTier ? "rgba(255, 107, 53, 0.05)" : "rgba(255, 255, 255, 0.02)",
+                backgroundColor:
+                  tier === currentTier ? "rgba(255, 107, 53, 0.05)" : "rgba(255, 255, 255, 0.02)",
                 border: `1px solid ${tier === currentTier ? "rgba(255, 107, 53, 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
                 borderRadius: "12px",
               }}
@@ -280,9 +275,7 @@ export default function SubscriptionPage() {
                 <Column gap="8">
                   <Flex horizontal="space-between" vertical="center">
                     <Heading variant="heading-strong-m">{details.name}</Heading>
-                    {tier === currentTier && (
-                      <Badge background="brand-medium">Current</Badge>
-                    )}
+                    {tier === currentTier && <Badge background="brand-medium">Current</Badge>}
                   </Flex>
                   <Text variant="display-strong-m">{details.price}</Text>
                   <Text variant="body-default-s" onBackground="neutral-weak">
@@ -304,7 +297,11 @@ export default function SubscriptionPage() {
                     fillWidth
                     disabled
                   >
-                    {tier === "basic" ? "Downgrade" : tier === "pro" ? "Upgrade to Pro" : "Contact Sales"}
+                    {tier === "basic"
+                      ? "Downgrade"
+                      : tier === "pro"
+                        ? "Upgrade to Pro"
+                        : "Contact Sales"}
                   </Button>
                 )}
               </Column>

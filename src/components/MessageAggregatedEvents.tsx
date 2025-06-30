@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Column, Text, Flex } from "@once-ui-system/core";
+import { Column, Text, Flex, Button } from "@once-ui-system/core";
 import { LogType } from "@/types/database";
 
 interface MessageAggregatedEventsProps {
@@ -33,9 +33,14 @@ export default function MessageAggregatedEvents({
   if (loading) {
     return (
       <Column gap="16" fillWidth>
-        <Text variant="heading-strong-l" onBackground="neutral-strong">
-          Events by Message
-        </Text>
+        <Flex fillWidth horizontal="space-between" vertical="center">
+          <Text variant="heading-strong-l" onBackground="neutral-strong">
+            Events by Message
+          </Text>
+          <Button href="/dashboard/logs" variant="tertiary" size="s">
+            View All
+          </Button>
+        </Flex>
         <div
           style={{
             height: "400px",
@@ -57,9 +62,14 @@ export default function MessageAggregatedEvents({
 
   return (
     <Column gap="16" fillWidth>
-      <Text variant="heading-strong-l" onBackground="neutral-strong">
-        Events by Message
-      </Text>
+      <Flex fillWidth horizontal="space-between" vertical="center">
+        <Text variant="heading-strong-l" onBackground="neutral-strong">
+          Events by Message
+        </Text>
+        <Button href="/dashboard/logs" variant="tertiary" size="s">
+          View All
+        </Button>
+      </Flex>
 
       <div
         style={{

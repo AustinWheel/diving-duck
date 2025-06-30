@@ -152,45 +152,49 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Check subscription limits
-    const limits = projectData.subscriptionLimits || getSubscriptionLimits(projectData.subscriptionTier || "basic");
-    
+    const limits =
+      projectData.subscriptionLimits ||
+      getSubscriptionLimits(projectData.subscriptionTier || "basic");
+
     // Check phone number limit
     if (!isWithinLimit(alertConfig.phoneNumbers.length - 1, limits.phoneNumbers)) {
       const tierName = projectData.subscriptionTier === "pro" ? "Pro" : "Basic";
-      const upgradeTo = projectData.subscriptionTier === "basic" ? "Pro for 10" : "Enterprise for unlimited";
-      
+      const upgradeTo =
+        projectData.subscriptionTier === "basic" ? "Pro for 10" : "Enterprise for unlimited";
+
       return NextResponse.json(
-        { 
+        {
           error: "Phone number limit exceeded",
           message: `Your ${tierName} plan allows ${limits.phoneNumbers} phone numbers. You're trying to save ${alertConfig.phoneNumbers.length}.`,
-          suggestion: `Remove ${alertConfig.phoneNumbers.length - limits.phoneNumbers} phone number${alertConfig.phoneNumbers.length - limits.phoneNumbers > 1 ? 's' : ''}, or upgrade to ${upgradeTo} phone numbers.`,
+          suggestion: `Remove ${alertConfig.phoneNumbers.length - limits.phoneNumbers} phone number${alertConfig.phoneNumbers.length - limits.phoneNumbers > 1 ? "s" : ""}, or upgrade to ${upgradeTo} phone numbers.`,
           details: {
             limit: limits.phoneNumbers,
             current: alertConfig.phoneNumbers.length,
-            tier: projectData.subscriptionTier || "basic"
-          }
+            tier: projectData.subscriptionTier || "basic",
+          },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
+
     // Check alert rules limit
     if (!isWithinLimit(alertConfig.alertRules.length - 1, limits.alertRules)) {
       const tierName = projectData.subscriptionTier === "pro" ? "Pro" : "Basic";
-      const upgradeTo = projectData.subscriptionTier === "basic" ? "Pro for 10" : "Enterprise for unlimited";
-      
+      const upgradeTo =
+        projectData.subscriptionTier === "basic" ? "Pro for 10" : "Enterprise for unlimited";
+
       return NextResponse.json(
-        { 
+        {
           error: "Alert rules limit exceeded",
-          message: `Your ${tierName} plan allows ${limits.alertRules} alert rule${limits.alertRules !== 1 ? 's' : ''}. You're trying to save ${alertConfig.alertRules.length}.`,
-          suggestion: `Remove ${alertConfig.alertRules.length - limits.alertRules} rule${alertConfig.alertRules.length - limits.alertRules > 1 ? 's' : ''}, or upgrade to ${upgradeTo} alert rules.`,
+          message: `Your ${tierName} plan allows ${limits.alertRules} alert rule${limits.alertRules !== 1 ? "s" : ""}. You're trying to save ${alertConfig.alertRules.length}.`,
+          suggestion: `Remove ${alertConfig.alertRules.length - limits.alertRules} rule${alertConfig.alertRules.length - limits.alertRules > 1 ? "s" : ""}, or upgrade to ${upgradeTo} alert rules.`,
           details: {
             limit: limits.alertRules,
             current: alertConfig.alertRules.length,
-            tier: projectData.subscriptionTier || "basic"
-          }
+            tier: projectData.subscriptionTier || "basic",
+          },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

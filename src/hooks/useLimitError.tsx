@@ -20,7 +20,7 @@ export function useLimitError() {
         // Clone the response so we can read it without consuming the original
         const clonedResponse = response.clone();
         const errorData = await clonedResponse.json();
-        
+
         // Check if it's a limit error with our structured format
         if (errorData.message && errorData.suggestion) {
           setLimitError(errorData);

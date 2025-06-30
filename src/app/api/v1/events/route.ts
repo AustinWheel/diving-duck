@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Format events for response
-    const formattedEvents = events.map(event => ({
+    const formattedEvents = events.map((event) => ({
       id: event.id,
       type: event.type || "text",
       message: event.message,

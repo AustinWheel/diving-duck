@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
     const projectRef = adminDb.collection("projects").doc();
     const tier = "basic";
     const limits = getSubscriptionLimits(tier);
-    
+
     // Initialize usage tracking
     const now = new Date();
     const tomorrow = new Date(now);
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     tomorrow.setUTCHours(0, 0, 0, 0);
-    
+
     const projectData = {
       id: projectRef.id,
       name: name.toLowerCase(),

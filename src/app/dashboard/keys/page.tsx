@@ -2,11 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Column, Heading, Text, Button, Flex, Icon, Spinner, Input } from "@once-ui-system/core";
+import {
+  Column,
+  Heading,
+  Text,
+  Button,
+  Flex,
+  Icon,
+  Spinner,
+  Input,
+  Row,
+} from "@once-ui-system/core";
 import { getAuth } from "firebase/auth";
 import { useProject } from "@/contexts/ProjectContext";
 import { FiCopy, FiRefreshCw, FiTrash2, FiEye, FiEyeOff } from "react-icons/fi";
 import { useLimitError } from "@/hooks/useLimitError";
+import { CircleCheck, Circle, ChevronsUpDown } from "lucide-react";
+import { Dropdown, ConfigProvider } from "antd";
+import type { MenuProps } from "antd";
 
 interface ApiKey {
   id: string;
@@ -17,6 +30,7 @@ interface ApiKey {
   expiresAt: string | null;
   isActive: boolean;
   maskedKey: string;
+  domain?: string;
 }
 
 export default function APIKeysPage() {
@@ -27,6 +41,7 @@ export default function APIKeysPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [newKeyType, setNewKeyType] = useState<"test" | "prod">("test");
+  const [domain, setDomain] = useState("");
   const [createdKey, setCreatedKey] = useState<{ key: string; id: string } | null>(null);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState<{
@@ -123,6 +138,7 @@ export default function APIKeysPage() {
           name: newKeyName,
           type: newKeyType,
           projectId: currentProjectId,
+          domain: newKeyType === "prod" && domain.trim() ? domain.trim() : undefined,
         }),
       });
 
@@ -138,6 +154,7 @@ export default function APIKeysPage() {
       const data = await response.json();
       setCreatedKey(data.key);
       setNewKeyName("");
+      setDomain("");
       loadKeys();
     } catch (error) {
       console.error("Error creating key:", error);
@@ -246,7 +263,12 @@ export default function APIKeysPage() {
           </Text>
         </Column>
         <Button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            setShowCreateModal(true);
+            setNewKeyName("");
+            setNewKeyType("test");
+            setDomain("");
+          }}
           variant="primary"
           size="m"
           style={{ whiteSpace: "nowrap" }}
@@ -392,6 +414,15 @@ export default function APIKeysPage() {
                       Expires: {formatDate(key.expiresAt)}
                     </Text>
                   )}
+                  {key.domain && (
+                    <Text
+                      variant="body-default-xs"
+                      onBackground="neutral-weak"
+                      style={{ whiteSpace: "nowrap" }}
+                    >
+                      Domain: {key.domain}
+                    </Text>
+                  )}
                 </Flex>
               </Column>
             </div>
@@ -502,80 +533,180 @@ export default function APIKeysPage() {
                     <Text variant="body-default-s" onBackground="neutral-strong">
                       Key Type
                     </Text>
-                    <div style={{ position: "relative", width: "100%" }}>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDropdown(!showDropdown);
+                    <ConfigProvider
+                      theme={{
+                        token: {
+                          colorBgElevated: "rgba(20, 20, 20, 0.98)",
+                          colorBorder: "rgba(255, 255, 255, 0.08)",
+                          colorText: "rgba(255, 255, 255, 0.9)",
+                          colorTextSecondary: "rgba(255, 255, 255, 0.6)",
+                          borderRadius: 8,
+                          controlItemBgHover: "rgba(255, 255, 255, 0.08)",
+                          controlItemBgActive: "rgba(255, 107, 53, 0.08)",
+                          controlPaddingHorizontal: 0,
+                          padding: 4,
+                        },
+                      }}
+                    >
+                      <Dropdown
+                        menu={{
+                          items: [
+                            {
+                              key: "test",
+                              label: (
+                                <Row
+                                  vertical="center"
+                                  horizontal="space-between"
+                                  fillWidth
+                                  gap="12"
+                                >
+                                  <Column gap="2">
+                                    <Text variant="body-default-m">Test Key</Text>
+                                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                                      Expires in 2 hours • No rate limits
+                                    </Text>
+                                  </Column>
+                                  {newKeyType === "test" ? (
+                                    <CircleCheck
+                                      size={16}
+                                      style={{ color: "#4ade80", flexShrink: 0 }}
+                                    />
+                                  ) : (
+                                    <Circle
+                                      size={16}
+                                      style={{ color: "rgba(255, 255, 255, 0.3)", flexShrink: 0 }}
+                                    />
+                                  )}
+                                </Row>
+                              ),
+                              onClick: () => setNewKeyType("test"),
+                              style: {
+                                backgroundColor:
+                                  newKeyType === "test"
+                                    ? "rgba(255, 107, 53, 0.08)"
+                                    : "transparent",
+                                padding: "8px 12px",
+                                minHeight: "40px",
+                              },
+                            },
+                            {
+                              key: "prod",
+                              label: (
+                                <Row
+                                  vertical="center"
+                                  horizontal="space-between"
+                                  fillWidth
+                                  gap="12"
+                                >
+                                  <Column gap="2">
+                                    <Text variant="body-default-m">Production Key</Text>
+                                    <Text variant="body-default-xs" onBackground="neutral-weak">
+                                      Never expires • Rate limited
+                                    </Text>
+                                  </Column>
+                                  {newKeyType === "prod" ? (
+                                    <CircleCheck
+                                      size={16}
+                                      style={{ color: "#4ade80", flexShrink: 0 }}
+                                    />
+                                  ) : (
+                                    <Circle
+                                      size={16}
+                                      style={{ color: "rgba(255, 255, 255, 0.3)", flexShrink: 0 }}
+                                    />
+                                  )}
+                                </Row>
+                              ),
+                              onClick: () => setNewKeyType("prod"),
+                              style: {
+                                backgroundColor:
+                                  newKeyType === "prod"
+                                    ? "rgba(255, 107, 53, 0.08)"
+                                    : "transparent",
+                                padding: "8px 12px",
+                                minHeight: "40px",
+                              },
+                            },
+                          ],
                         }}
-                        variant="secondary"
-                        size="m"
-                        fillWidth
-                        style={{
-                          justifyContent: "space-between",
-                          padding: "12px 16px",
+                        trigger={["click"]}
+                        placement="bottomLeft"
+                        overlayStyle={{
+                          minWidth: "300px",
+                          maxWidth: "400px",
                         }}
+                        popupRender={(menu) => (
+                          <div
+                            style={{
+                              backgroundColor: "rgba(20, 20, 20, 0.98)",
+                              border: "1px solid rgba(255, 255, 255, 0.08)",
+                              borderRadius: "8px",
+                              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+                              backdropFilter: "blur(24px)",
+                              WebkitBackdropFilter: "blur(24px)",
+                            }}
+                          >
+                            {menu}
+                          </div>
+                        )}
                       >
-                        <Text>
-                          {newKeyType === "test" ? "Test (expires in 2 hours)" : "Production"}
-                        </Text>
-                        <span style={{ marginLeft: "8px" }}>▼</span>
-                      </Button>
-                      {showDropdown && (
-                        <div
+                        <button
                           style={{
-                            position: "absolute",
-                            top: "100%",
-                            left: 0,
-                            right: 0,
-                            marginTop: "4px",
-                            backgroundColor: "rgba(40, 40, 40, 0.98)",
-                            border: "1px solid rgba(255, 255, 255, 0.12)",
+                            width: "100%",
+                            padding: "10px 12px",
+                            backgroundColor: "rgba(255, 255, 255, 0.02)",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
                             borderRadius: "8px",
-                            overflow: "hidden",
-                            zIndex: 1001,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            color: "var(--neutral-on-background-strong)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.02)";
+                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
                           }}
                         >
-                          <Button
-                            onClick={() => {
-                              setNewKeyType("test");
-                              setShowDropdown(false);
-                            }}
-                            variant="ghost"
-                            size="m"
-                            fillWidth
-                            style={{
-                              borderRadius: 0,
-                              justifyContent: "flex-start",
-                              padding: "12px 16px",
-                              backgroundColor:
-                                newKeyType === "test" ? "rgba(255, 255, 255, 0.05)" : "transparent",
-                            }}
+                          <Icon name="shield" size="xs" />
+                          <Text
+                            variant="body-default-s"
+                            onBackground="neutral-strong"
+                            style={{ flex: 1, textAlign: "left" }}
                           >
-                            Test (expires in 2 hours)
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setNewKeyType("prod");
-                              setShowDropdown(false);
-                            }}
-                            variant="ghost"
-                            size="m"
-                            fillWidth
-                            style={{
-                              borderRadius: 0,
-                              justifyContent: "flex-start",
-                              padding: "12px 16px",
-                              backgroundColor:
-                                newKeyType === "prod" ? "rgba(255, 255, 255, 0.05)" : "transparent",
-                            }}
-                          >
-                            Production
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                            {newKeyType === "test" ? "Test Key" : "Production Key"}
+                          </Text>
+                          <ChevronsUpDown size={14} />
+                        </button>
+                      </Dropdown>
+                    </ConfigProvider>
                   </Column>
+
+                  {newKeyType === "prod" && (
+                    <Column gap="8">
+                      <Text variant="body-default-s" onBackground="neutral-strong">
+                        Allowed Domain (Optional)
+                      </Text>
+                      <Text
+                        variant="body-default-xs"
+                        onBackground="neutral-weak"
+                        style={{ marginBottom: "4px" }}
+                      >
+                        Restrict this key to requests from a specific domain. Leave empty to allow requests from any domain.
+                      </Text>
+                      <Input
+                        value={domain}
+                        onChange={(e) => setDomain(e.target.value)}
+                        placeholder="e.g., https://warden.sh"
+                        size="m"
+                      />
+                    </Column>
+                  )}
                 </Column>
                 <Flex gap="12">
                   <Button
@@ -624,7 +755,7 @@ export default function APIKeysPage() {
           {toastMessage.message}
         </div>
       )}
-      
+
       {/* Limit Error Modal */}
       {LimitErrorModal}
     </Column>

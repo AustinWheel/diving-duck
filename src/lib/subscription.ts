@@ -80,16 +80,19 @@ export async function getProjectUsage(projectId: string): Promise<ProjectUsage> 
       lastUpdated: now,
     };
 
-    await adminDb.collection("projects").doc(projectId).update({
-      usage: {
-        dailyEvents: 0,
-        dailyEventsResetAt: admin.firestore.Timestamp.fromDate(tomorrow),
-        dailyAlerts: 0,
-        dailyAlertsResetAt: admin.firestore.Timestamp.fromDate(tomorrow),
-        totalTestAlerts: 0,
-        lastUpdated: admin.firestore.Timestamp.now(),
-      },
-    });
+    await adminDb
+      .collection("projects")
+      .doc(projectId)
+      .update({
+        usage: {
+          dailyEvents: 0,
+          dailyEventsResetAt: admin.firestore.Timestamp.fromDate(tomorrow),
+          dailyAlerts: 0,
+          dailyAlertsResetAt: admin.firestore.Timestamp.fromDate(tomorrow),
+          totalTestAlerts: 0,
+          lastUpdated: admin.firestore.Timestamp.now(),
+        },
+      });
 
     return usage;
   }
@@ -101,8 +104,12 @@ export async function getProjectUsage(projectId: string): Promise<ProjectUsage> 
   const updates: any = {};
 
   // Convert Firestore timestamps to Dates
-  const dailyEventsResetAt = usage.dailyEventsResetAt?.toDate ? usage.dailyEventsResetAt.toDate() : new Date(usage.dailyEventsResetAt);
-  const dailyAlertsResetAt = usage.dailyAlertsResetAt?.toDate ? usage.dailyAlertsResetAt.toDate() : new Date(usage.dailyAlertsResetAt);
+  const dailyEventsResetAt = usage.dailyEventsResetAt?.toDate
+    ? usage.dailyEventsResetAt.toDate()
+    : new Date(usage.dailyEventsResetAt);
+  const dailyAlertsResetAt = usage.dailyAlertsResetAt?.toDate
+    ? usage.dailyAlertsResetAt.toDate()
+    : new Date(usage.dailyAlertsResetAt);
 
   // Reset daily events if needed
   if (now >= dailyEventsResetAt) {
@@ -111,7 +118,7 @@ export async function getProjectUsage(projectId: string): Promise<ProjectUsage> 
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     tomorrow.setUTCHours(0, 0, 0, 0);
     usage.dailyEventsResetAt = tomorrow;
-    
+
     updates["usage.dailyEvents"] = 0;
     updates["usage.dailyEventsResetAt"] = admin.firestore.Timestamp.fromDate(tomorrow);
     needsUpdate = true;
@@ -124,7 +131,7 @@ export async function getProjectUsage(projectId: string): Promise<ProjectUsage> 
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     tomorrow.setUTCHours(0, 0, 0, 0);
     usage.dailyAlertsResetAt = tomorrow;
-    
+
     updates["usage.dailyAlerts"] = 0;
     updates["usage.dailyAlertsResetAt"] = admin.firestore.Timestamp.fromDate(tomorrow);
     needsUpdate = true;
@@ -137,11 +144,15 @@ export async function getProjectUsage(projectId: string): Promise<ProjectUsage> 
 
   return {
     dailyEvents: usage.dailyEvents || 0,
-    dailyEventsResetAt: usage.dailyEventsResetAt instanceof Date ? usage.dailyEventsResetAt : dailyEventsResetAt,
+    dailyEventsResetAt:
+      usage.dailyEventsResetAt instanceof Date ? usage.dailyEventsResetAt : dailyEventsResetAt,
     dailyAlerts: usage.dailyAlerts || 0,
-    dailyAlertsResetAt: usage.dailyAlertsResetAt instanceof Date ? usage.dailyAlertsResetAt : dailyAlertsResetAt,
+    dailyAlertsResetAt:
+      usage.dailyAlertsResetAt instanceof Date ? usage.dailyAlertsResetAt : dailyAlertsResetAt,
     totalTestAlerts: usage.totalTestAlerts || 0,
-    lastUpdated: usage.lastUpdated?.toDate ? usage.lastUpdated.toDate() : new Date(usage.lastUpdated || now),
+    lastUpdated: usage.lastUpdated?.toDate
+      ? usage.lastUpdated.toDate()
+      : new Date(usage.lastUpdated || now),
   };
 }
 
@@ -149,36 +160,47 @@ export async function getProjectUsage(projectId: string): Promise<ProjectUsage> 
  * Increment daily event count
  */
 export async function incrementDailyEvents(projectId: string): Promise<void> {
-  await adminDb.collection("projects").doc(projectId).update({
-    "usage.dailyEvents": admin.firestore.FieldValue.increment(1),
-    "usage.lastUpdated": admin.firestore.Timestamp.now(),
-  });
+  await adminDb
+    .collection("projects")
+    .doc(projectId)
+    .update({
+      "usage.dailyEvents": admin.firestore.FieldValue.increment(1),
+      "usage.lastUpdated": admin.firestore.Timestamp.now(),
+    });
 }
 
 /**
  * Increment daily alert count
  */
 export async function incrementDailyAlerts(projectId: string): Promise<void> {
-  await adminDb.collection("projects").doc(projectId).update({
-    "usage.dailyAlerts": admin.firestore.FieldValue.increment(1),
-    "usage.lastUpdated": admin.firestore.Timestamp.now(),
-  });
+  await adminDb
+    .collection("projects")
+    .doc(projectId)
+    .update({
+      "usage.dailyAlerts": admin.firestore.FieldValue.increment(1),
+      "usage.lastUpdated": admin.firestore.Timestamp.now(),
+    });
 }
 
 /**
  * Increment total test alerts
  */
 export async function incrementTestAlerts(projectId: string): Promise<void> {
-  await adminDb.collection("projects").doc(projectId).update({
-    "usage.totalTestAlerts": admin.firestore.FieldValue.increment(1),
-    "usage.lastUpdated": admin.firestore.Timestamp.now(),
-  });
+  await adminDb
+    .collection("projects")
+    .doc(projectId)
+    .update({
+      "usage.totalTestAlerts": admin.firestore.FieldValue.increment(1),
+      "usage.lastUpdated": admin.firestore.Timestamp.now(),
+    });
 }
 
 /**
  * Check if project can send more events today
  */
-export async function canSendEvent(projectId: string): Promise<{ allowed: boolean; reason?: string; limit?: number; current?: number }> {
+export async function canSendEvent(
+  projectId: string,
+): Promise<{ allowed: boolean; reason?: string; limit?: number; current?: number }> {
   const projectDoc = await adminDb.collection("projects").doc(projectId).get();
   const project = projectDoc.data();
 
@@ -186,7 +208,8 @@ export async function canSendEvent(projectId: string): Promise<{ allowed: boolea
     return { allowed: false, reason: "Project not found" };
   }
 
-  const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+  const limits =
+    project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
   const usage = await getProjectUsage(projectId);
 
   if (!isWithinLimit(usage.dailyEvents, limits.dailyEvents)) {
@@ -204,7 +227,10 @@ export async function canSendEvent(projectId: string): Promise<{ allowed: boolea
 /**
  * Check if project can send more alerts today
  */
-export async function canSendAlert(projectId: string, isTest: boolean = false): Promise<{ allowed: boolean; reason?: string; limit?: number; current?: number }> {
+export async function canSendAlert(
+  projectId: string,
+  isTest: boolean = false,
+): Promise<{ allowed: boolean; reason?: string; limit?: number; current?: number }> {
   const projectDoc = await adminDb.collection("projects").doc(projectId).get();
   const project = projectDoc.data();
 
@@ -212,7 +238,8 @@ export async function canSendAlert(projectId: string, isTest: boolean = false): 
     return { allowed: false, reason: "Project not found" };
   }
 
-  const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+  const limits =
+    project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
   const usage = await getProjectUsage(projectId);
 
   // Check test alert limits
@@ -241,7 +268,10 @@ export async function canSendAlert(projectId: string, isTest: boolean = false): 
 /**
  * Count active keys by type
  */
-export async function countActiveKeys(projectId: string, keyType: "test" | "prod"): Promise<number> {
+export async function countActiveKeys(
+  projectId: string,
+  keyType: "test" | "prod",
+): Promise<number> {
   const snapshot = await adminDb
     .collection("keys")
     .where("projectId", "==", projectId)

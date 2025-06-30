@@ -58,21 +58,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward to the main log endpoint
-    const baseUrl = request.url.replace(/\/sandbox\/log$/, '/log');
+    const baseUrl = request.url.replace(/\/sandbox\/log$/, "/log");
     const logRequest = new Request(baseUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey.key}`,
+        Authorization: `Bearer ${apiKey.key}`,
         "Content-Type": "application/json",
-        "X-Forwarded-For": request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "sandbox",
-        "User-Agent": "Warden Dashboard Sandbox"
+        "X-Forwarded-For":
+          request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "sandbox",
+        "User-Agent": "Warden Dashboard Sandbox",
       },
       body: JSON.stringify({
         type: body.type,
         message: body.message,
         meta: body.meta,
-        userId: userId // Include the user ID who sent from sandbox
-      })
+        userId: userId, // Include the user ID who sent from sandbox
+      }),
     });
 
     // Call the main log endpoint

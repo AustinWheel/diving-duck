@@ -55,23 +55,25 @@ export async function POST(request: NextRequest) {
     const project = projectDoc.data()!;
 
     // Check subscription limits
-    const limits = project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
+    const limits =
+      project.subscriptionLimits || getSubscriptionLimits(project.subscriptionTier || "basic");
     const currentMembers = await countTeamMembers(projectId);
-    
+
     // Check if we can add more members
     if (!isWithinLimit(currentMembers, limits.teamMembers)) {
       return NextResponse.json(
-        { 
+        {
           error: "Team member limit reached",
           message: `Your Basic plan allows ${limits.teamMembers} total members. You currently have ${currentMembers} members.`,
-          suggestion: "Upgrade to Pro for up to 11 team members, or remove existing members to invite new ones.",
+          suggestion:
+            "Upgrade to Pro for up to 11 team members, or remove existing members to invite new ones.",
           details: {
             current: currentMembers,
             limit: limits.teamMembers,
-            tier: project.subscriptionTier || "basic"
-          }
+            tier: project.subscriptionTier || "basic",
+          },
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -134,21 +136,22 @@ export async function POST(request: NextRequest) {
       const slotsAvailable = Math.max(0, limits.teamMembers - currentMembers);
       const tierName = project.subscriptionTier === "pro" ? "Pro" : "Basic";
       return NextResponse.json(
-        { 
+        {
           error: "Cannot send all invites",
-          message: `You're trying to invite ${emailsToInvite.length} member${emailsToInvite.length > 1 ? 's' : ''}, but you only have ${slotsAvailable} slot${slotsAvailable !== 1 ? 's' : ''} available.`,
-          suggestion: slotsAvailable === 0 
-            ? `Remove existing members or upgrade to ${project.subscriptionTier === "basic" ? "Pro for 11 total members" : "Enterprise for unlimited members"}.`
-            : `You can invite up to ${slotsAvailable} more member${slotsAvailable !== 1 ? 's' : ''} on your ${tierName} plan.`,
+          message: `You're trying to invite ${emailsToInvite.length} member${emailsToInvite.length > 1 ? "s" : ""}, but you only have ${slotsAvailable} slot${slotsAvailable !== 1 ? "s" : ""} available.`,
+          suggestion:
+            slotsAvailable === 0
+              ? `Remove existing members or upgrade to ${project.subscriptionTier === "basic" ? "Pro for 11 total members" : "Enterprise for unlimited members"}.`
+              : `You can invite up to ${slotsAvailable} more member${slotsAvailable !== 1 ? "s" : ""} on your ${tierName} plan.`,
           details: {
             current: currentMembers,
             limit: limits.teamMembers,
             slotsAvailable,
             invitesRequested: emailsToInvite.length,
-            tier: project.subscriptionTier || "basic"
-          }
+            tier: project.subscriptionTier || "basic",
+          },
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 

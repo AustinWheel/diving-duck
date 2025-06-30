@@ -84,20 +84,20 @@ export default function LimitErrorDialog({ error, onClose }: LimitErrorDialogPro
               >
                 <Icon name={getIcon()} size="m" color={getIconColor()} />
               </div>
-              <Heading 
-                variant="heading-strong-l" 
-                style={{ 
+              <Heading
+                variant="heading-strong-l"
+                style={{
                   wordBreak: "break-word",
                   lineHeight: 1.2,
-                  flex: 1
+                  flex: 1,
                 }}
               >
                 {error.error}
               </Heading>
             </Flex>
-            <Button 
-              onClick={onClose} 
-              variant="ghost" 
+            <Button
+              onClick={onClose}
+              variant="ghost"
               size="s"
               style={{ marginLeft: "8px", flexShrink: 0 }}
             >
@@ -116,49 +116,51 @@ export default function LimitErrorDialog({ error, onClose }: LimitErrorDialogPro
           </Column>
 
           {/* Details */}
-          {error.details && (error.details.limit !== undefined || error.details.hoursUntilReset) && (
-            <div
-              style={{
-                padding: "16px",
-                backgroundColor: "rgba(255, 255, 255, 0.02)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "8px",
-              }}
-            >
-              <Flex gap="16" wrap>
-                {error.details.limit !== undefined && (
-                  <Column gap="4">
-                    <Text variant="body-default-xs" onBackground="neutral-weak">
-                      Current Usage
-                    </Text>
-                    <Text variant="heading-strong-m">
-                      {error.details.current || 0} / {error.details.limit}
-                    </Text>
-                  </Column>
-                )}
-                {error.details.hoursUntilReset && (
-                  <Column gap="4">
-                    <Text variant="body-default-xs" onBackground="neutral-weak">
-                      Resets In
-                    </Text>
-                    <Text variant="heading-strong-m">
-                      {error.details.hoursUntilReset} hour{error.details.hoursUntilReset !== 1 ? "s" : ""}
-                    </Text>
-                  </Column>
-                )}
-                {error.details.tier && (
-                  <Column gap="4">
-                    <Text variant="body-default-xs" onBackground="neutral-weak">
-                      Current Plan
-                    </Text>
-                    <Text variant="heading-strong-m" style={{ textTransform: "capitalize" }}>
-                      {error.details.tier}
-                    </Text>
-                  </Column>
-                )}
-              </Flex>
-            </div>
-          )}
+          {error.details &&
+            (error.details.limit !== undefined || error.details.hoursUntilReset) && (
+              <div
+                style={{
+                  padding: "16px",
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "8px",
+                }}
+              >
+                <Flex gap="16" wrap>
+                  {error.details.limit !== undefined && (
+                    <Column gap="4">
+                      <Text variant="body-default-xs" onBackground="neutral-weak">
+                        Current Usage
+                      </Text>
+                      <Text variant="heading-strong-m">
+                        {error.details.current || 0} / {error.details.limit}
+                      </Text>
+                    </Column>
+                  )}
+                  {error.details.hoursUntilReset && (
+                    <Column gap="4">
+                      <Text variant="body-default-xs" onBackground="neutral-weak">
+                        Resets In
+                      </Text>
+                      <Text variant="heading-strong-m">
+                        {error.details.hoursUntilReset} hour
+                        {error.details.hoursUntilReset !== 1 ? "s" : ""}
+                      </Text>
+                    </Column>
+                  )}
+                  {error.details.tier && (
+                    <Column gap="4">
+                      <Text variant="body-default-xs" onBackground="neutral-weak">
+                        Current Plan
+                      </Text>
+                      <Text variant="heading-strong-m" style={{ textTransform: "capitalize" }}>
+                        {error.details.tier}
+                      </Text>
+                    </Column>
+                  )}
+                </Flex>
+              </div>
+            )}
 
           {/* Actions */}
           <Flex gap="12" fillWidth>

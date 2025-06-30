@@ -823,7 +823,7 @@ export default function AlertsPage() {
           {toastMessage.message}
         </div>
       )}
-      
+
       {/* Limit Error Modal */}
       {LimitErrorModal}
     </Column>
