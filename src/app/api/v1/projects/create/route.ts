@@ -124,9 +124,8 @@ export async function POST(request: NextRequest) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Create initial API keys (one test, one prod)
+    // Create initial test key only (production keys require domain whitelisting)
     const testKey = `test_${nanoid(32)}`;
-    const prodKey = `prod_${nanoid(32)}`;
 
     // Create test key (expires in 2 hours)
     const testKeyRef = adminDb.collection("keys").doc();
@@ -142,19 +141,6 @@ export async function POST(request: NextRequest) {
       name: "Initial Test Key",
     });
 
-    // Create production key (no expiration)
-    const prodKeyRef = adminDb.collection("keys").doc();
-    batch.set(prodKeyRef, {
-      id: prodKeyRef.id,
-      key: prodKey,
-      type: "prod",
-      projectId: projectRef.id,
-      createdBy: userId,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      isActive: true,
-      name: "Initial Production Key",
-    });
-
     // Commit all changes atomically
     await batch.commit();
 
@@ -166,7 +152,6 @@ export async function POST(request: NextRequest) {
       },
       keys: {
         test: { id: testKeyRef.id, key: testKey },
-        prod: { id: prodKeyRef.id, key: prodKey },
       },
     });
   } catch (error) {

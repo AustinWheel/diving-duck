@@ -348,9 +348,14 @@ export default function Dashboard() {
         gap="16"
         style={{ marginTop: "24px" }}
       >
-        <Text variant="heading-strong-m" onBackground="neutral-strong">
-          Event Analytics
-        </Text>
+        <Column gap="4">
+          <Text variant="heading-strong-m" onBackground="neutral-strong">
+            Event Analytics
+          </Text>
+          <Text variant="body-default-xs" onBackground="neutral-weak">
+            Logs might take up to 1 minute to update
+          </Text>
+        </Column>
         <Flex gap="8" vertical="center">
           <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
           <Button

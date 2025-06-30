@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Flex, Text, Button, Input, Column, Badge, Spinner } from "@once-ui-system/core";
+import { Flex, Text, Button, Input, Column, Badge, Spinner, CodeBlock, Icon, Switch, NumberInput } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
+import { AlertRule, LogType } from "@/types/database";
+import confetti from "canvas-confetti";
 
-type OnboardingStep = 1 | 2 | 3;
+type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -19,6 +21,15 @@ export default function OnboardingPage() {
   const [inviteEmails, setInviteEmails] = useState<string[]>([""]);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [projectId, setProjectId] = useState("");
+  const [testKey, setTestKey] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [alertThreshold, setAlertThreshold] = useState(5);
+  const [alertWindow, setAlertWindow] = useState(10);
+  const [isSendingTestAlert, setIsSendingTestAlert] = useState(false);
+  const [testAlertSent, setTestAlertSent] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -31,6 +42,42 @@ export default function OnboardingPage() {
       checkOnboardingStatus();
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (showConfetti) {
+      // Fire confetti
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      function randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // since particles fall down, start a bit higher than random
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        });
+      }, 250);
+
+      return () => clearInterval(interval);
+    }
+  }, [showConfetti]);
 
   const checkOnboardingStatus = async () => {
     if (!user) return;
@@ -133,6 +180,7 @@ export default function OnboardingPage() {
 
       const { project, keys } = await projectResponse.json();
       setProjectId(project.id);
+      setTestKey(keys.test.key);
 
       // Create invites if there are valid emails
       const validEmails = inviteEmails.filter((email) => email && email.includes("@"));
@@ -205,9 +253,107 @@ export default function OnboardingPage() {
     }
   };
 
+  const validatePhoneNumber = () => {
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+    const formattedNumber = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+    
+    if (!phoneRegex.test(formattedNumber)) {
+      setPhoneError("Invalid phone number format. Use E.164 format (e.g., +1234567890)");
+      return false;
+    }
+    
+    setPhoneError("");
+    return true;
+  };
+
+  const handleSaveAlertConfig = async () => {
+    if (!validatePhoneNumber()) return;
+
+    try {
+      const idToken = await user!.getIdToken();
+      const formattedNumber = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+      
+      // Create alert configuration
+      const alertConfig = {
+        enabled: alertsEnabled,
+        phoneNumbers: [formattedNumber],
+        alertRules: [{
+          globalLimit: {
+            enabled: true,
+            windowMinutes: alertWindow,
+            maxAlerts: alertThreshold,
+          },
+          messageRules: [],
+          notificationType: "text" as const,
+        }],
+      };
+
+      const response = await fetch(`/api/v1/alerts/config?projectId=${projectId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ alertConfig }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save alert configuration");
+      }
+
+      setCurrentStep(6);
+    } catch (error) {
+      console.error("Error saving alert config:", error);
+      setPhoneError("Failed to save configuration. Please try again.");
+    }
+  };
+
+  const handleSendTestAlert = async () => {
+    try {
+      setIsSendingTestAlert(true);
+      const idToken = await user!.getIdToken();
+
+      const response = await fetch(`/api/v1/alerts/test?projectId=${projectId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send test alert");
+      }
+
+      setTestAlertSent(true);
+      setCurrentStep(7);
+      setShowConfetti(true);
+      
+      // Stop confetti after 5 seconds
+      setTimeout(() => setShowConfetti(false), 5000);
+    } catch (error) {
+      console.error("Error sending test alert:", error);
+    } finally {
+      setIsSendingTestAlert(false);
+    }
+  };
+
+  const handleSkipToNext = () => {
+    if (currentStep === 4) {
+      setCurrentStep(5);
+    } else if (currentStep === 5) {
+      setCurrentStep(7);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+    }
+  };
+
+  const handleSkipToDashboard = async () => {
+    await handleCompleteOnboarding();
+  };
+
   const renderStepIndicator = () => (
     <Flex gap="8" horizontal="center" vertical="center" style={{}}>
-      {[1, 2, 3].map((step) => (
+      {[1, 2, 3, 4, 5, 6, 7].map((step) => (
         <div
           key={step}
           style={{
@@ -296,7 +442,7 @@ export default function OnboardingPage() {
             <Column gap="12" style={{ maxHeight: "300px", overflowY: "auto" }}>
               {inviteEmails.map((email, index) => (
                 <Input
-                  id={`inviteEmail-${index}`}
+                  id={`invite-email-${index}`}
                   key={index}
                   type="email"
                   value={email}
@@ -339,6 +485,315 @@ export default function OnboardingPage() {
       case 3:
         return (
           <Column
+            gap="32"
+            style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
+          >
+            <Column gap="12">
+              <Text variant="heading-strong-l" onBackground="neutral-strong">
+                Project created successfully!
+              </Text>
+              <Text variant="body-default-m" onBackground="neutral-weak">
+                Let's get your first log sent
+              </Text>
+            </Column>
+
+            <Flex gap="12">
+              <Button
+                onClick={() => setCurrentStep(4)}
+                variant="primary"
+                size="l"
+                fillWidth
+                style={{
+                  backgroundColor: "var(--brand-background-strong)",
+                  color: "var(--brand-on-background-strong)",
+                }}
+              >
+                Continue Setup
+              </Button>
+              <Button
+                onClick={handleSkipToDashboard}
+                variant="secondary"
+                size="l"
+                fillWidth
+              >
+                Skip to Dashboard
+              </Button>
+            </Flex>
+          </Column>
+        );
+
+      case 4:
+        return (
+          <Column
+            gap="32"
+            style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
+          >
+            <Column gap="12">
+              <Text variant="heading-strong-l" onBackground="neutral-strong">
+                Let's send your first log
+              </Text>
+              <Text variant="body-default-m" onBackground="neutral-weak">
+                Follow these steps to integrate console.text() into your application
+              </Text>
+            </Column>
+
+            <Column gap="16">
+              <Column gap="8">
+                <Text variant="heading-strong-s">1. Install the package</Text>
+                <CodeBlock
+                  copyButton={true}
+                  codes={[
+                    {
+                      code: `npm install @console-warden`,
+                      language: "bash",
+                      label: "Shell",
+                    },
+                  ]}
+                />
+              </Column>
+
+              <Column gap="8">
+                <Text variant="heading-strong-s">2. Add your API key to environment variables</Text>
+                <CodeBlock
+                  copyButton={true}
+                  codes={[
+                    {
+                      code: `echo "WARDEN_PUBLIC_KEY=${testKey}" >> .env`,
+                      language: "bash",
+                      label: "Shell",
+                    },
+                  ]}
+                />
+              </Column>
+
+              <Column gap="8">
+                <Text variant="heading-strong-s">3. Import and use in your code</Text>
+                <CodeBlock
+                  copyButton={true}
+                  codes={[
+                    {
+                      code: `// Import at the top of your app
+import 'console-warden';
+
+// Use anywhere in your code
+console.text('User account not found');
+console.error('Payment processing failed');
+console.warn('API rate limit approaching');
+console.log('Debug info');`,
+                      language: "javascript",
+                      label: "JavaScript",
+                    },
+                  ]}
+                />
+              </Column>
+            </Column>
+
+            <Flex gap="12">
+              <Button
+                onClick={() => setCurrentStep(5)}
+                variant="primary"
+                size="l"
+                fillWidth
+                style={{
+                  backgroundColor: "var(--brand-background-strong)",
+                  color: "var(--brand-on-background-strong)",
+                }}
+              >
+                Continue
+              </Button>
+              <Button
+                onClick={handleSkipToNext}
+                variant="secondary"
+                size="l"
+              >
+                Skip
+              </Button>
+            </Flex>
+          </Column>
+        );
+
+      case 5:
+        return (
+          <Column
+            horizontal="center"
+            gap="32"
+            style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
+          >
+            <Column gap="12" horizontal="center" fillWidth >
+              <Text variant="heading-strong-l" onBackground="neutral-strong">
+                Set up alerts
+              </Text>
+              <Text variant="body-default-m" onBackground="neutral-weak">
+                Get notified when important events happen in your application
+              </Text>
+            </Column>
+
+            <Column gap="24" horizontal="center">
+              <Column gap="16" horizontal="center">
+                <Flex gap="12" vertical="center">
+                  <Icon name="bell" size="m" />
+                  <Text variant="heading-strong-s">How alerts work</Text>
+                </Flex>
+                <Text variant="body-default-m" onBackground="neutral-weak">
+                  When your application logs reach a certain threshold (e.g., 5 errors in 10 minutes), 
+                  we'll send you an SMS alert so you can respond quickly.
+                </Text>
+              </Column>
+
+              <Column gap="16">
+                <Column gap="8">
+                  <Text variant="body-default-m" onBackground="neutral-strong">
+                    Phone Number
+                  </Text>
+                  <Input
+                    id="phone-number"
+                    value={phoneNumber}
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value);
+                      setPhoneError("");
+                    }}
+                    placeholder="+1234567890"
+                    error={phoneError}
+                    style={{ fontSize: "16px" }}
+                  />
+                  <Text variant="body-default-xs" onBackground="neutral-weak">
+                    Use E.164 format (e.g., +1234567890)
+                  </Text>
+                </Column>
+
+                <Flex gap="12" vertical="center">
+                  <Switch
+                    isChecked={alertsEnabled}
+                    onToggle={() => setAlertsEnabled(!alertsEnabled)}
+                  />
+                  <Text variant="body-default-m" onBackground="neutral-strong">
+                    Enable alerts
+                  </Text>
+                </Flex>
+
+                {alertsEnabled && (
+                  <Column gap="12">
+                    <Text variant="body-default-s" onBackground="neutral-strong">
+                      Alert threshold
+                    </Text>
+                    <Flex gap="12" vertical="center" wrap>
+                      <Text variant="body-default-s" onBackground="neutral-weak">
+                        Send alert after
+                      </Text>
+                      <NumberInput
+                        id="alert-threshold"
+                        label="Events"
+                        value={alertThreshold}
+                        onChange={(value) => setAlertThreshold(value || 5)}
+                        min={1}
+                        max={100}
+                        height="s"
+                        style={{ width: "100px" }}
+                      />
+                      <Text variant="body-default-s" onBackground="neutral-weak">
+                        events within
+                      </Text>
+                      <NumberInput
+                        id="alert-window"
+                        label="Minutes"
+                        value={alertWindow}
+                        onChange={(value) => setAlertWindow(value || 10)}
+                        min={1}
+                        max={60}
+                        height="s"
+                        style={{ width: "100px" }}
+                      />
+                      <Text variant="body-default-s" onBackground="neutral-weak">
+                        minutes
+                      </Text>
+                    </Flex>
+                  </Column>
+                )}
+              </Column>
+            </Column>
+
+            <Flex gap="12">
+              <Button
+                onClick={handleSaveAlertConfig}
+                variant="primary"
+                size="l"
+                fillWidth
+                disabled={!phoneNumber}
+                style={{
+                  backgroundColor: "var(--brand-background-strong)",
+                  color: "var(--brand-on-background-strong)",
+                }}
+              >
+                Continue
+              </Button>
+              <Button
+                onClick={handleSkipToNext}
+                variant="secondary"
+                size="l"
+              >
+                Skip
+              </Button>
+            </Flex>
+          </Column>
+        );
+
+      case 6:
+        return (
+          <Column
+            gap="32"
+            style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
+            horizontal="center"
+          >
+            <Column gap="12" style={{ textAlign: "center" }} horizontal="center">
+              <Text variant="heading-strong-l" onBackground="neutral-strong">
+                Test your alerts
+              </Text>
+              <Text variant="body-default-m" onBackground="neutral-weak">
+                Let's make sure everything is working by sending a test alert to your phone
+              </Text>
+            </Column>
+
+            <Column gap="24" align="center" horizontal="center">
+              <Icon name="message" size="xl" color="var(--brand-on-background-strong)" />
+              
+              {!testAlertSent ? (
+                <>
+                  <Text variant="body-default-m" onBackground="neutral-weak" style={{ textAlign: "center" }}>
+                    We'll send a test SMS to {phoneNumber}
+                  </Text>
+                  <Button
+                    onClick={handleSendTestAlert}
+                    variant="primary"
+                    size="l"
+                    disabled={isSendingTestAlert}
+                    style={{
+                      backgroundColor: "var(--brand-background-strong)",
+                      color: "var(--brand-on-background-strong)",
+                    }}
+                  >
+                    {isSendingTestAlert ? <Spinner size="s" /> : "Send Test Alert"}
+                  </Button>
+                </>
+              ) : (
+                <Column gap="16" align="center">
+                  <Flex gap="8" vertical="center">
+                    <Icon name="check" size="m" color="var(--success-on-background-strong)" />
+                    <Text variant="body-default-l" onBackground="success-strong">
+                      Test alert sent successfully!
+                    </Text>
+                  </Flex>
+                  <Text variant="body-default-m" onBackground="neutral-weak">
+                    Check your phone for the SMS
+                  </Text>
+                </Column>
+              )}
+            </Column>
+          </Column>
+        );
+
+      case 7:
+        return (
+          <Column
             gap="48"
             style={{ opacity: 1, transform: "translateX(0)", transition: "all 0.5s ease" }}
           >
@@ -347,53 +802,32 @@ export default function OnboardingPage() {
                 You're all set! 🎉
               </Text>
               <Text variant="body-default-l" onBackground="neutral-weak">
-                Here's what to do next:
+                Your project is ready and alerts are configured
               </Text>
             </Column>
 
-            <Flex gap="24" wrap>
-              <Column gap="12" style={{ flex: "1", minWidth: "140px" }}>
-                <Badge variant="success" size="s" style={{ alignSelf: "center" }}>
-                  1
-                </Badge>
-                <Column gap="4" align="center" style={{ textAlign: "center" }}>
+            <Column gap="24" align="center">
+              <Flex gap="32" wrap horizontal="center">
+                <Column gap="8" align="center" horizontal="center">
+                  <Icon name="check" size="l" color="var(--success-on-background-strong)" />
                   <Text variant="body-strong-m" onBackground="neutral-strong">
-                    Generate API keys
-                  </Text>
-                  <Text variant="body-default-xs" onBackground="neutral-weak">
-                    Create test and production keys
+                    Project created
                   </Text>
                 </Column>
-              </Column>
-
-              <Column gap="12" style={{ flex: "1", minWidth: "140px" }}>
-                <Badge variant="info" size="s" style={{ alignSelf: "center" }}>
-                  2
-                </Badge>
-                <Column gap="4" align="center" style={{ textAlign: "center" }}>
+                <Column gap="8" align="center" horizontal="center">
+                  <Icon name="check" size="l" color="var(--success-on-background-strong)" />
                   <Text variant="body-strong-m" onBackground="neutral-strong">
-                    Use console.text()
-                  </Text>
-                  <Text variant="body-default-xs" onBackground="neutral-weak">
-                    Install our npm package
+                    SDK configured
                   </Text>
                 </Column>
-              </Column>
-
-              <Column gap="12" style={{ flex: "1", minWidth: "140px" }}>
-                <Badge variant="warning" size="s" style={{ alignSelf: "center" }}>
-                  3
-                </Badge>
-                <Column gap="4" align="center" style={{ textAlign: "center" }}>
+                <Column gap="8" align="center" horizontal="center">
+                  <Icon name="check" size="l" color="var(--success-on-background-strong)" />
                   <Text variant="body-strong-m" onBackground="neutral-strong">
-                    Get notified
-                  </Text>
-                  <Text variant="body-default-xs" onBackground="neutral-weak">
-                    Configure alert thresholds
+                    Alerts enabled
                   </Text>
                 </Column>
-              </Column>
-            </Flex>
+              </Flex>
+            </Column>
 
             <Button
               onClick={handleCompleteOnboarding}
