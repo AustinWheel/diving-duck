@@ -52,11 +52,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Return user data including onboarding status
-    const userData = userSnapshot.exists ? userSnapshot.data() : { isOnboarded: false };
+    // Get the latest user data from the database
+    const latestUserDoc = await userDoc.get();
+    const latestUserData = latestUserDoc.data();
+    
     return NextResponse.json({
       success: true,
-      isOnboarded: userData.isOnboarded || false,
+      isOnboarded: latestUserData?.isOnboarded || false,
     });
   } catch (error) {
     console.error("Error syncing user:", error);

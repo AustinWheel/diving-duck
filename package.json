@@ -8,7 +8,8 @@
     "build": "next build --no-lint",
     "start": "next start",
     "lint": "next lint",
-    "biome-write": "npx @biomejs/biome format --write ."
+    "biome-write": "npx @biomejs/biome format --write .",
+    "delete-user": "tsx scripts/delete-user.ts"
   },
   "dependencies": {
     "@next/third-parties": "^15.3.4",
@@ -39,6 +40,7 @@
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
     "autoprefixer": "^10.4.21",
+    "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.4",
     "typescript": "5.8.2"
   },

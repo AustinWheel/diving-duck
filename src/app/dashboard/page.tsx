@@ -6,8 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Flex, Row, Column, Heading, Text, Icon, Spinner, Button, Tag } from "@once-ui-system/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProject } from "@/contexts/ProjectContext";
-import { db } from "@/lib/firebaseClient";
-import { doc, getDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import EventActivityChart from "@/components/EventActivityChart";
 import MessageAggregatedEvents from "@/components/MessageAggregatedEvents";
@@ -16,7 +14,7 @@ import { LogType } from "@/types/database";
 import { useLiveEventCount } from "@/hooks/useLiveEventCount";
 
 export default function Dashboard() {
-  const { user, loading } = useAuth();
+  const { user, loading, isOnboarded } = useAuth();
   const { currentProjectId, loading: projectsLoading } = useProject();
   const router = useRouter();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
@@ -144,10 +142,15 @@ export default function Dashboard() {
       return;
     }
 
-    if (user) {
-      checkOnboardingStatus();
+    if (user && !loading) {
+      // Use onboarding status from AuthContext
+      if (!isOnboarded) {
+        router.push("/onboarding");
+      } else {
+        setCheckingOnboarding(false);
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, isOnboarded, router]);
 
   // Check for mobile screen size
   useEffect(() => {
@@ -178,23 +181,6 @@ export default function Dashboard() {
     }
   }, [timeRange]);
 
-  const checkOnboardingStatus = async () => {
-    if (!user) return;
-
-    try {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      const userData = userDoc.data();
-
-      if (!userData?.isOnboarded) {
-        router.push("/onboarding");
-      } else {
-        setCheckingOnboarding(false);
-      }
-    } catch (error) {
-      console.error("Error checking onboarding status:", error);
-      setCheckingOnboarding(false);
-    }
-  };
 
   if (loading || checkingOnboarding || projectsLoading) {
     return (

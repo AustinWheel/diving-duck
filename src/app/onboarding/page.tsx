@@ -176,6 +176,9 @@ export default function OnboardingPage() {
     if (!user) return;
 
     try {
+      // Set flag to prevent redirect loops
+      sessionStorage.setItem("completingOnboarding", "true");
+      
       // Get Firebase ID token
       const idToken = await user.getIdToken();
 
@@ -191,9 +194,14 @@ export default function OnboardingPage() {
         throw new Error("Failed to complete onboarding");
       }
 
-      router.push("/dashboard");
+      // Clear the flag and redirect
+      sessionStorage.removeItem("completingOnboarding");
+      
+      // Force a hard navigation to ensure fresh state
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("Error completing onboarding:", error);
+      sessionStorage.removeItem("completingOnboarding");
     }
   };
 
