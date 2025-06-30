@@ -83,10 +83,10 @@ html {
 
 /* Fix scrolling issue on main page */
 html, body {
-  height: auto !important;
-  min-height: 100vh;
-  overflow-y: auto !important;
-  overflow-x: hidden;
+  /* height: auto !important; */
+  /* min-height: 100vh; */
+  /* overflow-y: auto !important; */
+  /* overflow-x: hidden; */
 }
 
 /* Ensure Flex container doesn't block scrolling */
